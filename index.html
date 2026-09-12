@@ -1,0 +1,3245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1B16" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Ledger — INR · Step 6J</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0F1B16;
+    --panel: #152420;
+    --panel-2: #0C1512;
+    --line: #26382F;
+    --line-soft: #1D2C25;
+    --text: #E9F1EC;
+    --text-muted: #85988D;
+    --text-dim: #5B6D62;
+    --gold: #C9A24B;
+    --mint: #6FCF97;
+    --red: #E0554F;
+    --chip-bg: #1B2B23;
+    --chip-hover: #24382D;
+    --radius-sm: 3px;
+    --radius-md: 6px;
+    font-size: 16px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+  .num{ font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    flex-shrink:0;
+  }
+  .brand{
+    display:flex;
+    align-items:baseline;
+    gap:8px;
+  }
+  .brand-mark{
+    width:9px; height:9px;
+    background: var(--gold);
+    display:inline-block;
+    border-radius: 1px;
+    transform: rotate(45deg);
+  }
+  .brand-name{
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .header-right{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+  .install-btn{
+    display:none;
+    border:1px solid var(--line);
+    background:var(--chip-bg);
+    color:var(--text);
+    border-radius:10px;
+    padding:8px 11px;
+    font:500 12px 'IBM Plex Sans',sans-serif;
+    cursor:pointer;
+  }
+  .install-btn.show{display:inline-flex;align-items:center;gap:6px;}
+  .offline-badge{
+    display:none;
+    font-size:11px;
+    color:var(--text-muted);
+    border:1px solid var(--line);
+    border-radius:999px;
+    padding:5px 8px;
+  }
+  .offline-badge.show{display:inline-block;}
+  @media (max-width:560px){
+    header{padding:12px 14px;}
+    .header-right{gap:7px;}
+    .install-btn{padding:7px 9px;}
+    .offline-badge{display:none !important;}
+  }
+  .balance-stat{
+    text-align:right;
+    line-height:1.15;
+  }
+  .balance-stat .amt{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 18px;
+    font-weight:600;
+  }
+  .balance-stat .lbl{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top:2px;
+  }
+  .view-toggle{
+    display:flex;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow:hidden;
+  }
+  .view-toggle button{
+    background: transparent;
+    border:none;
+    color: var(--text-muted);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 13px;
+    cursor:pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .view-toggle button.active{
+    background: var(--chip-hover);
+    color: var(--text);
+  }
+  .view-toggle button:not(.active):hover{
+    color: var(--text);
+  }
+
+  /* ---------- main area ---------- */
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    max-width: 640px;
+    width:100%;
+    margin: 0 auto;
+    min-height:0;
+  }
+
+  /* ---------- chat view ---------- */
+  #chat-view{
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
+  }
+  #chat-log{
+    flex:1;
+    overflow-y:auto;
+    padding: 22px 20px 10px 20px;
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+  }
+  .msg-row{
+    display:flex;
+    flex-direction:column;
+    max-width: 82%;
+  }
+  .msg-row.bot{ align-self:flex-start; }
+  .msg-row.user{ align-self:flex-end; align-items:flex-end; }
+
+  .msg-sender{
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    padding: 0 2px;
+  }
+  .msg-row.user .msg-sender{ text-align:right; }
+
+  .bubble{
+    padding: 10px 13px;
+    font-size: 14.5px;
+    line-height:1.5;
+    border-left: 2px solid var(--line);
+    background: var(--panel);
+  }
+  .msg-row.bot .bubble{
+    border-left-color: var(--gold);
+  }
+  .msg-row.user .bubble{
+    border-left: none;
+    border-right: 2px solid var(--mint);
+    background: var(--panel);
+  }
+  .bubble .highlight-amt{
+    font-family:'IBM Plex Mono', monospace;
+    color: var(--mint);
+  }
+  .bubble .highlight-amt.neg{ color: var(--red); }
+
+  .confirm-card{
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1px dashed var(--line);
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+  .confirm-card .row{
+    display:flex;
+    justify-content:space-between;
+    gap: 12px;
+  }
+  .confirm-card .row .k{ color: var(--text-muted); }
+  .confirm-card .row .v{ font-family:'IBM Plex Mono', monospace; }
+
+  /* choices */
+  .choices{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 0 2px;
+  }
+  .chip{
+    background: var(--chip-bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 7px 13px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor:pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .chip:hover{
+    background: var(--chip-hover);
+    border-color: var(--gold);
+  }
+  .chip:active{ transform: scale(0.97); }
+  .chip.chosen{
+    background: var(--chip-hover);
+    border-color: var(--text-dim);
+    color: var(--text-dim);
+    cursor:default;
+  }
+  .chip.danger:hover{ border-color: var(--red); }
+  .chip.primary{
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .back-chip{
+    margin-top: 8px;
+    color: var(--text-muted);
+    border-color: var(--line);
+  }
+  .back-chip:hover{
+    color: var(--text);
+    border-color: var(--gold);
+  }
+
+  /* input row for amount / note */
+  .input-row{
+    display:flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 0 2px;
+  }
+  .input-row input{
+    flex:1;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    outline:none;
+  }
+  .input-row input:focus{ border-color: var(--gold); }
+  .input-row input::placeholder{ color: var(--text-dim); font-family:'IBM Plex Sans', sans-serif; }
+  /* date picker */
+  .date-row{
+    display:flex;
+    gap:8px;
+    margin-top:10px;
+    padding:0 2px;
+  }
+  .date-row input[type="date"]{
+    flex:1;
+    min-width:0;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    padding:9px 12px;
+    border-radius:var(--radius-md);
+    font-size:14px;
+    font-family:'IBM Plex Mono', monospace;
+    outline:none;
+    color-scheme:dark;
+  }
+  .date-row input[type="date"]:focus{ border-color:var(--gold); }
+  .date-row button.send{
+    background:var(--gold);
+    color:#14231C;
+    border:none;
+    padding:0 16px;
+    border-radius:var(--radius-md);
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;
+  }
+  .date-row button.send:hover{ opacity:.9; }
+  .date-row button.send:disabled{ opacity:.4; cursor:default; }
+
+  .input-row button.send{
+    background: var(--gold);
+    color: #14231C;
+    border:none;
+    padding: 0 16px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight:600;
+    cursor:pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .input-row button.send:hover{ opacity:0.9; }
+  .input-row button.send:disabled{ opacity:0.4; cursor:default; }
+
+  .typing{
+    display:flex;
+    gap:4px;
+    padding: 10px 13px;
+    align-self:flex-start;
+  }
+  .typing span{
+    width:5px; height:5px;
+    background: var(--text-dim);
+    border-radius:50%;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){ animation-delay: 0.2s; }
+  .typing span:nth-child(3){ animation-delay: 0.4s; }
+  @keyframes blink{ 0%,80%,100%{opacity:0.25;} 40%{opacity:1;} }
+
+  /* ---------- summary view ---------- */
+  #summary-view{
+    display:none;
+    flex:1;
+    overflow-y:auto;
+    padding: 22px 20px 40px 20px;
+  }
+  .summary-section{ margin-bottom: 28px; }
+  .summary-section h2{
+    font-size: 13px;
+    font-weight:600;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .stat-box{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+  }
+  .stat-box .v{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 17px;
+    font-weight:600;
+  }
+  .stat-box .v.income{ color: var(--mint); }
+  .stat-box .v.expense{ color: var(--red); }
+  .stat-box .l{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .cat-row{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 9px;
+    font-size: 13px;
+  }
+  .cat-row .cat-name{
+    width: 120px;
+    flex-shrink:0;
+    color: var(--text-muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .cat-row .cat-bar-track{
+    flex:1;
+    height: 7px;
+    background: var(--line-soft);
+    border-radius: 4px;
+    overflow:hidden;
+  }
+  .cat-row .cat-bar-fill{
+    height:100%;
+    background: var(--gold);
+    border-radius: 4px;
+  }
+  .cat-row .cat-amt{
+    width: 72px;
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    flex-shrink:0;
+  }
+
+  .txn-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 13.5px;
+  }
+  .txn-item:last-child{ border-bottom:none; }
+  .txn-main{ display:flex; flex-direction:column; gap:2px; }
+  .txn-cat{ font-weight:500; }
+  .txn-meta{ font-size: 11.5px; color: var(--text-dim); }
+  .txn-right{ display:flex; align-items:center; gap: 10px; }
+  .txn-amt{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .txn-amt.income{ color: var(--mint); }
+  .txn-amt.expense{ color: var(--red); }
+  .txn-del{
+    background:none;
+    border:none;
+    color: var(--text-dim);
+    cursor:pointer;
+    font-size: 15px;
+    padding: 2px 4px;
+    line-height:1;
+  }
+  .txn-del:hover{ color: var(--red); }
+
+  .empty-note{
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+  }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+
+  /* ---------- mobile / PWA polish ---------- */
+  html{ -webkit-tap-highlight-color: transparent; }
+  body{
+    overscroll-behavior-y: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, textarea{ -webkit-user-select: text; user-select: text; }
+  button, input{ touch-action: manipulation; }
+  @media (max-width: 640px){
+    header{ padding: 14px 15px; }
+    .header-right{ gap: 10px; }
+    .balance-stat .amt{ font-size: 16px; }
+    .view-toggle button{ padding: 8px 10px; }
+    main{ max-width:none; }
+    #chat-log{ padding: 16px 14px 12px; gap: 12px; }
+    #summary-view{ padding: 16px 14px 30px; }
+    .msg-row{ max-width: 92%; }
+    .bubble{ font-size: 15px; padding: 11px 13px; }
+    .choices{ gap: 7px; }
+    .chip{ min-height: 42px; padding: 9px 13px; font-size: 14px; }
+    .input-row{ gap: 7px; }
+    .input-row input{
+      min-width: 0;
+      min-height: 44px;
+      font-size: 16px;
+    }
+    .input-row button.send{ min-height: 44px; }
+    .stat-grid{ grid-template-columns: 1fr; }
+    .stat-box{ padding: 11px 13px; }
+    .cat-row .cat-name{ width: 95px; }
+  }
+  @media (display-mode: standalone){
+    header{ padding-top: max(14px, env(safe-area-inset-top)); }
+    #summary-view{ padding-bottom: max(30px, env(safe-area-inset-bottom)); }
+    #chat-log{ padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  }
+
+  .data-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+
+  .memory-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 14px;
+  }
+  .memory-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 0; border-bottom:1px solid var(--line);
+  }
+  .memory-row:last-child{ border-bottom:0; }
+  .memory-name{ min-width:0; }
+  .memory-edit{
+    flex:0 0 auto; background:var(--chip-bg); border:1px solid var(--line);
+    color:var(--text); border-radius:999px; padding:6px 10px; cursor:pointer;
+  }
+  .memory-edit:hover{ border-color:var(--gold); }
+  .data-action{
+    background:var(--chip-bg); border:1px solid var(--line); color:var(--text);
+    padding:8px 12px; border-radius:var(--radius-md); cursor:pointer; font-size:13px;
+  }
+  .data-action:hover{ border-color:var(--gold); background:var(--chip-hover); }
+  .data-action.danger:hover{ border-color:var(--red); }
+
+    .dashboard-mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .dashboard-mini>div,.mini-list{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+    .mini-list{margin-top:10px;line-height:1.9}
+    @media (max-width:600px){.dashboard-mini{grid-template-columns:1fr}}
+
+    .trend-list{margin-top:10px;display:flex;flex-direction:column;gap:9px}
+    .trend-row{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;font-size:13px}
+    .trend-label{color:var(--muted);text-transform:capitalize}.trend-track{height:9px;border-radius:999px;background:var(--chip-bg);overflow:hidden;border:1px solid var(--line)}
+    .trend-fill{display:block;height:100%;border-radius:999px;background:var(--gold)}.trend-amt{min-width:82px;text-align:right}
+</style>
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ledger%22%2C%22short_name%22%3A%22Ledger%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230F1B16%22%2C%22theme_color%22%3A%22%230F1B16%22%7D" />
+
+<style>
+.search-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.search-controls input,.search-controls select{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;font:inherit}
+.search-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.search-results{margin-top:12px}
+
+.insights-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.insight-card{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.insight-card .insight-label{font-size:.78rem;color:var(--muted);margin-bottom:5px}
+.insight-card .insight-value{font-size:1.05rem;font-weight:600}
+.insight-card .insight-note{font-size:.82rem;color:var(--muted);margin-top:5px}
+@media(max-width:600px){.insights-grid{grid-template-columns:1fr}}
+.txn-edit-panel{margin-top:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:grid;gap:10px}
+.txn-edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.txn-edit-grid label{font-size:.8rem;color:var(--muted);display:grid;gap:4px}
+.txn-edit-grid input,.txn-edit-grid select,.txn-edit-panel textarea{width:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px}
+.txn-edit-actions{display:flex;gap:8px;flex-wrap:wrap}
+.txn-edit-actions button{padding:8px 12px;border-radius:10px;border:1px solid var(--line);cursor:pointer}
+.txn-edit-actions .txn-save{background:var(--accent);color:#111;border-color:var(--accent)}
+.txn-edit-actions .txn-cancel{background:transparent;color:var(--text)}
+@media(max-width:600px){.txn-edit-grid{grid-template-columns:1fr}}
+
+.search-result{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.search-result-main{min-width:0}.search-result-title{font-weight:600}.search-result-meta{font-size:.86rem;color:var(--muted);margin-top:3px}.search-result-amt{white-space:nowrap;font-weight:700}.search-result-amt.income{color:var(--mint)}.search-result-amt.expense{color:var(--red)}
+@media(max-width:600px){.search-controls{grid-template-columns:1fr}.search-result{align-items:flex-start}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-mark"></span>
+    <span class="brand-name">Ledger</span>
+  </div>
+  <div class="header-right">
+    <span id="offline-badge" class="offline-badge">Offline</span>
+    <button id="install-btn" class="install-btn" type="button" aria-label="Install Ledger">＋ Install</button>
+    <div class="balance-stat">
+      <div class="amt num" id="header-balance">₹0.00</div>
+      <div class="lbl">balance</div>
+    </div>
+    <div class="view-toggle">
+      <button id="tab-chat" class="active">Chat</button>
+      <button id="tab-summary">Summary</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="chat-view">
+    <div id="chat-log"></div>
+  </div>
+
+  <div id="summary-view">
+    <div id="summary-content"></div>
+  </div>
+</main>
+
+<script>
+(function(){
+  const EXPENSE_CATEGORIES = ["Food","Housing","Utilities","Groceries","Transportation","Dining Out","Entertainment","Health & Fitness","Shopping","Travel","Insurance","Subscriptions","Education","Personal Care","Gifts & Donations","Debt Payment","Savings & Investments","Other"];
+  const INCOME_CATEGORIES = ["Salary","Freelance","Business","Investment","Gift","Refund","Other"];
+  const PAYMENT_METHODS = ["Cash","Credit Card","Debit Card","UPI","Net Banking","Wallet","Other"];
+
+  function getCategories(type){
+    const base = type === "Expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    return [...new Set([...base, ...(customCategories[type] || [])])];
+  }
+
+  function loadCustomCategories(){
+    try{
+      const saved = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && Array.isArray(parsed.Expense) && Array.isArray(parsed.Income)){
+          customCategories = parsed;
+        }
+      }
+    }catch(e){ customCategories = {Expense:[], Income:[]}; }
+  }
+
+  function saveCustomCategories(){
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
+    saveAppState();
+  }
+
+  function loadMerchantMemory(){
+    try{
+      const saved = localStorage.getItem(MERCHANT_MEMORY_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && parsed.Expense && parsed.Income) merchantMemory = parsed;
+      }
+    }catch(e){ merchantMemory = {Expense:{}, Income:{}}; }
+  }
+
+  function loadTrustedMerchantMemory(){
+    try{
+      const saved = localStorage.getItem(TRUSTED_MERCHANT_MEMORY_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && parsed.Expense && parsed.Income) trustedMerchantMemory = parsed;
+      }
+    }catch(e){ trustedMerchantMemory = {Expense:{}, Income:{}}; }
+  }
+
+  function saveTrustedMerchantMemory(){
+    try{ localStorage.setItem(TRUSTED_MERCHANT_MEMORY_KEY, JSON.stringify(trustedMerchantMemory)); }catch(e){}
+  }
+
+  function saveMerchantMemory(){
+    localStorage.setItem(MERCHANT_MEMORY_KEY, JSON.stringify(merchantMemory));
+    saveAppState();
+  }
+
+  function loadRecurringRules(){
+    try{
+      const saved=localStorage.getItem(RECURRING_KEY);
+      const parsed=saved?JSON.parse(saved):[];
+      recurringRules=Array.isArray(parsed)?parsed:[];
+    }catch(e){ recurringRules=[]; }
+  }
+
+  function saveRecurringRules(){
+    try{ localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringRules)); saveAppState(); return true; }
+    catch(e){ console.warn("Could not save recurring rules",e); return false; }
+  }
+
+  function loadBudgets(){
+    try{
+      const saved=localStorage.getItem(BUDGETS_KEY);
+      const parsed=saved?JSON.parse(saved):{Expense:{}};
+      if(parsed && parsed.Expense && typeof parsed.Expense === "object") budgets=parsed;
+    }catch(e){ budgets={Expense:{}}; }
+  }
+
+  function saveBudgets(){
+    try{ localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets)); saveAppState(); return true; }
+    catch(e){ console.warn("Could not save budgets",e); return false; }
+  }
+
+  function saveAppState(){
+    try{
+      localStorage.setItem(APP_STATE_KEY, JSON.stringify({
+        version:2, transactions, customCategories, merchantMemory, recurringRules, budgets
+      }));
+    }catch(e){ console.warn("Could not save consolidated app state", e); }
+  }
+
+  function loadAppState(){
+    // Load the consolidated state first, but NEVER let an empty consolidated
+    // merchant memory hide useful data from the older storage keys.
+    let loadedConsolidated = false;
+    try{
+      const saved = localStorage.getItem(APP_STATE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(parsed && Array.isArray(parsed.transactions)) transactions = parsed.transactions;
+        if(parsed && parsed.customCategories && Array.isArray(parsed.customCategories.Expense) && Array.isArray(parsed.customCategories.Income)) customCategories = parsed.customCategories;
+        if(parsed && parsed.merchantMemory && parsed.merchantMemory.Expense && parsed.merchantMemory.Income) merchantMemory = parsed.merchantMemory;
+        if(parsed && Array.isArray(parsed.recurringRules)) recurringRules = parsed.recurringRules;
+        if(parsed && parsed.budgets && parsed.budgets.Expense && typeof parsed.budgets.Expense === "object") budgets = parsed.budgets;
+        loadedConsolidated = true;
+      }
+    }catch(e){ console.warn("Could not load consolidated app state", e); }
+
+    // Merge legacy keys into the consolidated state without overwriting
+    // anything that is already present.
+    try{
+      const legacyTx = localStorage.getItem(STORAGE_KEY);
+      if(!transactions.length && legacyTx){
+        const parsed = JSON.parse(legacyTx);
+        if(Array.isArray(parsed)) transactions = parsed;
+      }
+    }catch(e){ console.warn("Could not migrate legacy transactions", e); }
+
+    try{
+      const legacyCats = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+      if(legacyCats){
+        const parsed = JSON.parse(legacyCats);
+        if(parsed && Array.isArray(parsed.Expense) && Array.isArray(parsed.Income)){
+          customCategories.Expense = [...new Set([...(customCategories.Expense||[]), ...parsed.Expense])];
+          customCategories.Income = [...new Set([...(customCategories.Income||[]), ...parsed.Income])];
+        }
+      }
+    }catch(e){ console.warn("Could not migrate legacy categories", e); }
+
+    try{
+      const legacyMemory = localStorage.getItem(MERCHANT_MEMORY_KEY);
+      if(legacyMemory){
+        const parsed = JSON.parse(legacyMemory);
+        if(parsed && parsed.Expense && parsed.Income){
+          merchantMemory.Expense = {...parsed.Expense, ...(merchantMemory.Expense||{})};
+          merchantMemory.Income = {...parsed.Income, ...(merchantMemory.Income||{})};
+        }
+      }
+    }catch(e){ console.warn("Could not migrate legacy merchant memory", e); }
+
+    // IMPORTANT: do not infer learned merchant mappings from transaction history.
+    // A transaction category is not proof that the merchant should always use
+    // that category. Learned mappings must come from an explicit user choice.
+    // This prevents entries such as "tea" from accidentally becoming
+    // permanently mapped to an unrelated category like Education.
+
+    // Clean up the accidental legacy mapping created by the earlier recovery
+    // logic. This does not touch the transaction itself.
+    if(merchantMemory.Expense){
+      Object.keys(merchantMemory.Expense).forEach(key=>{
+        const k=String(key).trim().toLowerCase();
+        const c=String(merchantMemory.Expense[key] || "").trim().toLowerCase();
+        // These mappings were created by earlier buggy builds and must never
+        // be treated as user-learned rules. They are removed regardless of
+        // what category they contain; the user can explicitly learn them again.
+        if(["tea", "tea paytm", "keyboard"].includes(k)) delete merchantMemory.Expense[key];
+      });
+    }
+
+    if(loadedConsolidated || transactions.length || Object.keys(merchantMemory.Expense).length || Object.keys(merchantMemory.Income).length){
+      saveAppState();
+    }
+    return loadedConsolidated;
+  }
+
+  function rememberMerchant(type, merchant, category){
+    merchant = String(merchant || "").trim().toLowerCase();
+    category = String(category || "").trim();
+    if(!merchant || !category) return;
+    merchantMemory[type][merchant] = category;
+    trustedMerchantMemory[type][merchant] = category;
+    saveMerchantMemory();
+    saveTrustedMerchantMemory();
+  }
+
+  function lookupRememberedCategory(type, merchant){
+    if(!merchant) return null;
+    const key = String(merchant).trim().toLowerCase();
+
+    // HARD SAFETY: "tea" was accidentally learned as Education in an older
+    // build. Never allow any stale tea mapping to affect a new entry.
+    // This does not modify existing transactions.
+    if(type === "Expense" && ["tea", "tea paytm", "keyboard"].includes(key)) {
+      if(merchantMemory.Expense?.[key]) delete merchantMemory.Expense[key];
+      try { localStorage.setItem(MERCHANT_MEMORY_KEY, JSON.stringify(merchantMemory)); } catch(e) {}
+      try { saveAppState(); } catch(e) {}
+      return null;
+    }
+
+    return trustedMerchantMemory[type]?.[key] || null;
+  }
+
+  function addCustomCategory(type, name){
+    name = String(name || "").trim();
+    if(!name) return false;
+    if(!getCategories(type).some(c => c.toLowerCase() === name.toLowerCase())){
+      customCategories[type].push(name);
+      saveCustomCategories();
+      return true;
+    }
+    return false;
+  }
+  const STORAGE_KEY = "ledger:transactions";
+  const CUSTOM_CATEGORIES_KEY = "ledger:custom-categories";
+  const MERCHANT_MEMORY_KEY = "ledger:merchant-memory";
+  const TRUSTED_MERCHANT_MEMORY_KEY = "ledger:trusted-merchant-memory";
+  const APP_STATE_KEY = "ledger:app-state:v1";
+  const RECURRING_KEY = "ledger:recurring:v1";
+  const BUDGETS_KEY = "ledger:budgets:v1";
+  let customCategories = { Expense: [], Income: [] };
+  let merchantMemory = { Expense: {}, Income: {} };
+  let trustedMerchantMemory = { Expense: {}, Income: {} };
+  let recurringRules = [];
+  let budgets = { Expense: {} };
+
+  const chatLog = document.getElementById("chat-log");
+  const summaryContent = document.getElementById("summary-content");
+  const headerBalance = document.getElementById("header-balance");
+  const tabChat = document.getElementById("tab-chat");
+  const tabSummary = document.getElementById("tab-summary");
+  const chatViewEl = document.getElementById("chat-view");
+  const summaryViewEl = document.getElementById("summary-view");
+
+  let transactions = [];
+  let draft = {};
+  let step = "type";
+  let storageReady = false;
+  let flowHistory = [];
+  let lastSavedTransactionId = null;
+
+  const fmt = (n) => {
+    const sign = n < 0 ? "-" : "";
+    return sign + "₹" + Math.abs(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+
+  // ---------- storage ----------
+  // ---------- persistent local storage ----------
+  // Browser-built-in storage: data survives closing and reopening the page.
+  function loadTransactions(){
+    // Consolidated state is already loaded by loadAppState(). Only use the
+    // legacy transaction key when nothing was loaded.
+    if(transactions.length) { storageReady = true; return; }
+    try{
+      const saved = localStorage.getItem(STORAGE_KEY);
+      transactions = saved ? JSON.parse(saved) : [];
+      if(!Array.isArray(transactions)) transactions = [];
+    }catch(e){
+      console.error("Couldn't load transactions:", e);
+      transactions = [];
+    }
+    storageReady = true;
+  }
+
+  function saveTransactions(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+      saveAppState();
+      return true;
+    }catch(e){
+      console.error("Couldn't save transactions:", e);
+      addBotMessage("Couldn't save your data in this browser. Please check browser storage settings.");
+      return false;
+    }
+  }
+
+  // ---------- render: chat ----------
+  function addRow(sender, contentEl, senderLabel){
+    const row = document.createElement("div");
+    row.className = "msg-row " + sender;
+    if(senderLabel){
+      const s = document.createElement("div");
+      s.className = "msg-sender";
+      s.textContent = senderLabel;
+      row.appendChild(s);
+    }
+    row.appendChild(contentEl);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return row;
+  }
+
+  function addBotMessage(html){
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = html;
+    return addRow("bot", bubble, "Ledger");
+  }
+
+  function addUserMessage(text){
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    return addRow("user", bubble, "You");
+  }
+
+  function addChoices(options){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "choices";
+    options.forEach(opt => {
+      const chip = document.createElement("button");
+      chip.className = "chip" + (opt.primary ? " primary" : "") + (opt.danger ? " danger" : "");
+      chip.textContent = opt.label;
+      chip.onclick = () => {
+        Array.from(wrap.children).forEach(c => { c.disabled = true; if(c!==chip) c.classList.add("chosen"); });
+        chip.classList.add("chosen");
+        opt.onClick();
+      };
+      wrap.appendChild(chip);
+    });
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return row;
+  }
+
+  function addBackButton(){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "choices";
+    const chip = document.createElement("button");
+    chip.className = "chip back-chip";
+    chip.textContent = "← Back";
+    chip.onclick = () => goBack();
+    wrap.appendChild(chip);
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return row;
+  }
+
+  function renderQuickInput(prefill=""){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "input-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.inputMode = "text";
+    input.autocomplete = "off";
+    input.value = prefill || "";
+    input.placeholder = 'e.g. "chips 20", "uber 250 yesterday", or "how much did I spend this month?"';
+    const btn = document.createElement("button");
+    btn.className = "send";
+    btn.textContent = "Log";
+
+    function submitQuick(){
+      const text = input.value.trim();
+      if(!text) return;
+      input.disabled = true;
+      btn.disabled = true;
+      addUserMessage(text);
+      handleQuickInput(text);
+    }
+
+    input.addEventListener("keydown", e => {
+      if(e.key === "Enter") submitQuick();
+    });
+    btn.addEventListener("click", submitQuick);
+    wrap.appendChild(input);
+    wrap.appendChild(btn);
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    input.focus();
+    return row;
+  }
+
+  function goBack(){
+    if(!flowHistory.length){
+      addBotMessage("You're already at the start of this entry.");
+      return;
+    }
+
+    const previous = flowHistory.pop();
+    draft = JSON.parse(JSON.stringify(previous.draft || {}));
+
+    if(previous.step === "quick"){
+      // If the original quick command was not recognized, Back returns to the
+      // command box instead of incorrectly jumping to the payment step.
+      if(!previous.reason){
+        showTyping(()=>{
+          addBotMessage("Okay — let's try another command.");
+          renderQuickInput("");
+        });
+        return;
+      }
+      showTyping(()=>{
+        if(previous.reason === "type"){
+          addBotMessage("Is this an expense or income?");
+          addChoices([
+            {label:"Expense",onClick:()=>{draft.type="Expense";continueAfterQuick();}},
+            {label:"Income",onClick:()=>{draft.type="Income";continueAfterQuick();}}
+          ]);
+        } else if(previous.reason === "category"){
+          addBotMessage("Which category?");
+          addChoices([
+            ...getCategories(draft.type).map(c=>({
+              label:c,onClick:()=>{draft.category=c;continueAfterQuick();}
+            })),
+            {label:"+ Add category",primary:true,onClick:()=>{
+              askForNewCategory(draft.type,(name)=>{
+                if(name){ draft.category=name; continueAfterQuick(); }
+              });
+            }}
+          ]);
+        } else if(previous.reason === "remember"){
+          addBotMessage(`Should I remember <b>${escapeHtml(draft.merchant)}</b> as <b>${escapeHtml(draft.category)}</b> for next time?`);
+          addChoices([
+            {label:"Yes, remember",primary:true,onClick:()=>{
+              rememberMerchant(draft.type,draft.merchant,draft.category);
+              draft.merchantWasLearned=true;
+              draft._rememberDecision="yes";
+              continueAfterQuick();
+            }},
+            {label:"No, just this time",onClick:()=>{
+              draft._rememberDecision="no";
+              continueAfterQuick();
+            }}
+          ]);
+        } else {
+          addBotMessage("How'd you pay?");
+          addChoices(PAYMENT_METHODS.map(p=>({
+            label:p,onClick:()=>{draft.payment=p;continueAfterQuick();}
+          })));
+        }
+        addBackButton();
+      });
+      return;
+    }
+
+    // Guided-flow fallback.
+    step=previous.step;
+    showTyping(()=>{
+      if(step==="type"){
+        addBotMessage("What are we logging?");
+        addChoices([
+          {label:"Expense",onClick:()=>pickType("Expense")},
+          {label:"Income",onClick:()=>pickType("Income")}
+        ]);
+      }else if(step==="category"){
+        addBotMessage("Which category?");
+        addChoices(getCategories(draft.type).map(c=>({label:c,onClick:()=>pickCategory(c)})));
+      }else if(step==="amount"){
+        addBotMessage("Enter the amount.");
+        addInputRow("e.g. 1,250",{numeric:true,buttonLabel:"Next",onSubmit:n=>pickAmount(n)});
+      }else if(step==="payment"){
+        addBotMessage("How'd you pay?");
+        addChoices(PAYMENT_METHODS.map(p=>({label:p,onClick:()=>pickPayment(p)})));
+      }else if(step==="date"){
+        addBotMessage("What date should this transaction use?");
+        addDateInput(draft.date || todayISO(),d=>pickDate(d));
+      }else if(step==="note"){
+        addBotMessage("Add a note (optional).");
+        addInputRow("Add a note (optional)",{
+          buttonLabel:"Add",skippable:true,
+          onSubmit:val=>pickNote(val),onSkip:()=>pickNote("")
+        });
+      }
+      if(step!=="type") addBackButton();
+    });
+  }
+
+  function addInputRow(placeholder, opts){
+    opts = opts || {};
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "input-row";
+    const input = document.createElement("input");
+    input.type = opts.numeric ? "text" : "text";
+    input.inputMode = opts.numeric ? "decimal" : "text";
+    input.placeholder = placeholder;
+    const btn = document.createElement("button");
+    btn.className = "send";
+    btn.textContent = opts.buttonLabel || "Send";
+    function submit(){
+      const val = input.value.trim();
+      if(opts.numeric){
+        const n = parseFloat(val.replace(/[^0-9.]/g,""));
+        if(!val || isNaN(n) || n <= 0){
+          input.style.borderColor = "var(--red)";
+          input.placeholder = "Enter an amount above 0";
+          return;
+        }
+        input.disabled = true; btn.disabled = true;
+        opts.onSubmit(n);
+      } else {
+        input.disabled = true; btn.disabled = true;
+        opts.onSubmit(val);
+      }
+    }
+    input.addEventListener("keydown", (e) => { if(e.key === "Enter") submit(); });
+    btn.addEventListener("click", submit);
+    wrap.appendChild(input);
+    wrap.appendChild(btn);
+    if(opts.skippable){
+      const skip = document.createElement("button");
+      skip.className = "chip";
+      skip.style.marginLeft = "0";
+      skip.textContent = "Skip";
+      skip.onclick = () => {
+        input.disabled = true; btn.disabled = true; skip.disabled = true;
+        opts.onSkip();
+      };
+      wrap.appendChild(skip);
+    }
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    input.focus();
+    return row;
+  }
+
+  function addDateRow(){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "date-row";
+    const input = document.createElement("input");
+    input.type = "date";
+    input.value = new Date().toISOString().slice(0,10);
+    input.max = new Date().toISOString().slice(0,10);
+    const btn = document.createElement("button");
+    btn.className = "send";
+    btn.textContent = "Next";
+    function submit(){
+      if(!input.value){
+        input.style.borderColor = "var(--red)";
+        return;
+      }
+      input.disabled = true;
+      btn.disabled = true;
+      pickDate(input.value);
+    }
+    input.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
+    btn.addEventListener("click", submit);
+    wrap.appendChild(input);
+    wrap.appendChild(btn);
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    input.focus();
+    return row;
+  }
+
+  function showTyping(cb, delay){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const t = document.createElement("div");
+    t.className = "typing";
+    t.innerHTML = "<span></span><span></span><span></span>";
+    row.appendChild(t);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    setTimeout(() => {
+      row.remove();
+      cb();
+    }, delay || 380);
+  }
+
+  // ---------- date helpers ----------
+  function todayISO(){
+    const d = new Date();
+    return toDateInputValue(d);
+  }
+
+  function formatDisplayDate(date){
+    if(!date) return "";
+    return new Date(date + "T00:00:00").toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
+  }
+
+  function addDateInput(value, onSubmit){
+    const row = document.createElement("div");
+    row.className = "msg-row bot";
+    const wrap = document.createElement("div");
+    wrap.className = "input-row";
+    const input = document.createElement("input");
+    input.type = "date";
+    input.value = value || todayISO();
+    const btn = document.createElement("button");
+    btn.className = "send";
+    btn.textContent = "Next";
+    function submit(){
+      if(!input.value) return;
+      input.disabled = true; btn.disabled = true;
+      onSubmit(input.value);
+    }
+    input.addEventListener("change", () => {});
+    input.addEventListener("keydown", e => { if(e.key === "Enter") submit(); });
+    btn.addEventListener("click", submit);
+    wrap.appendChild(input); wrap.appendChild(btn);
+    row.appendChild(wrap); chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    input.focus();
+    return row;
+  }
+
+  // ---------- conversation flow ----------
+  function startFlow(){
+    draft = {};
+    step = "quick";
+    flowHistory = [];
+
+    showTyping(() => {
+      addBotMessage('What would you like to log? <span style="color:var(--text-muted)">Try "chips 20", "uber 250 yesterday", or use the guided buttons.</span>');
+      renderQuickInput();
+
+      const choices = document.createElement("div");
+      choices.className = "quick-examples";
+      ["chips 20","uber 250 yesterday","salary 45k","petrol 2k day before yesterday"].forEach(text => {
+        const b = document.createElement("button");
+        b.className = "quick-example";
+        b.textContent = text;
+        b.onclick = () => {
+          const input = chatLog.querySelector(".input-row input:not(:disabled)");
+          if(input){
+            input.value = text;
+            input.focus();
+          }
+        };
+        choices.appendChild(b);
+      });
+      const exrow = document.createElement("div");
+      exrow.className = "msg-row bot";
+      exrow.appendChild(choices);
+      chatLog.appendChild(exrow);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    });
+  }
+
+  // ---------- rule-based quick entry ----------
+  const MERCHANT_RULES = {
+    "chips": ["Food", "Snacks"],
+    "swiggy": ["Food", "Food Delivery"],
+    "zomato": ["Food", "Food Delivery"],
+    "uber": ["Transportation", "Cab"],
+    "ola": ["Transportation", "Cab"],
+    "petrol": ["Transportation", "Fuel"],
+    "fuel": ["Transportation", "Fuel"],
+    "netflix": ["Subscriptions", "Netflix"],
+    "amazon": ["Shopping", "Online Shopping"],
+    "salary": ["Salary"],
+    "freelance": ["Freelance"],
+    "refund": ["Refund"],
+    "rent": ["Housing"],
+    "electricity": ["Utilities"],
+    "recharge": ["Utilities", "Mobile Recharge"],
+    "atta": ["Groceries"]
+  };
+
+  const PAYMENT_RULES = {
+    "google pay":"UPI", "gpay":"UPI", "phonepe":"UPI", "upi":"UPI",
+    "paytm":"Wallet", "cash":"Cash", "credit card":"Credit Card",
+    "credit":"Credit Card", "debit card":"Debit Card", "debit":"Debit Card",
+    "net banking":"Net Banking", "bank transfer":"Net Banking", "wallet":"Wallet"
+  };
+
+  function normalizeQuickText(text){
+    return String(text || "")
+      .replace(/\u00a0/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+  }
+
+  function parseAmount(text){
+    const cleaned = normalizeQuickText(text).toLowerCase().replace(/,/g,"");
+    // Accept: 250, ₹250, 1.2k, 45k, 2 lakh, and amounts embedded in text.
+    const matches = [...cleaned.matchAll(/(?:₹\s*)?(\d+(?:\.\d+)?)\s*(k|thousand|lakh|lac|l)?\b/gi)];
+    if(!matches.length) return null;
+    let best = null;
+    for(const m of matches){
+      let n = parseFloat(m[1]);
+      const suffix = (m[2] || "").toLowerCase();
+      if(suffix === "k" || suffix === "thousand") n *= 1000;
+      if(suffix === "lakh" || suffix === "lac" || suffix === "l") n *= 100000;
+      if(n > 0){ best = n; break; }
+    }
+    return best;
+  }
+
+  function toDateInputValue(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function shiftDate(days){
+    const d = new Date();
+    d.setHours(12,0,0,0);
+    d.setDate(d.getDate()+days);
+    return toDateInputValue(d);
+  }
+
+  function parseDate(text){
+    const lower = normalizeQuickText(text).toLowerCase();
+
+    // Explicit numeric dates have priority. This prevents a command such as
+    // "spent 44 on tea on 9/9 using paytm" from silently falling back to today.
+    let m = lower.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+    if(m){
+      const day=parseInt(m[1],10), month=parseInt(m[2],10);
+      let year=m[3]?parseInt(m[3],10):new Date().getFullYear();
+      if(year<100) year+=2000;
+      const d=new Date(year,month-1,day);
+      if(d.getFullYear()===year && d.getMonth()===month-1 && d.getDate()===day) return toDateInputValue(d);
+    }
+
+    if(/\bday\s+before\s+yesterday\b/.test(lower)) return shiftDate(-2);
+    if(/\byesterday\b/.test(lower)) return shiftDate(-1);
+    if(/\btoday\b/.test(lower)) return shiftDate(0);
+    if(/\btomorrow\b/.test(lower)) return shiftDate(1);
+
+    const months={jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,september:8,oct:9,october:9,nov:10,november:10,dec:11,december:11};
+
+    // 9 Sep / 9 September / 9 Sep 2026
+    m=lower.match(/\b(\d{1,2})\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+(\d{4}))?\b/);
+    if(m){
+      const day=parseInt(m[1],10), month=months[m[2]], year=m[3]?parseInt(m[3],10):new Date().getFullYear();
+      const d=new Date(year,month,day);
+      if(d.getFullYear()===year && d.getMonth()===month && d.getDate()===day) return toDateInputValue(d);
+    }
+
+    // Sep 9 / September 9 / Sep 9 2026
+    m=lower.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:\s+(\d{4}))?\b/);
+    if(m){
+      const month=months[m[1]], day=parseInt(m[2],10), year=m[3]?parseInt(m[3],10):new Date().getFullYear();
+      const d=new Date(year,month,day);
+      if(d.getFullYear()===year && d.getMonth()===month && d.getDate()===day) return toDateInputValue(d);
+    }
+    return null;
+  }
+
+  function detectPayment(text){
+    const lower=normalizeQuickText(text).toLowerCase();
+    const key=Object.keys(PAYMENT_RULES).sort((a,b)=>b.length-a.length).find(k=>new RegExp(`\\b${k.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}\\b`,"i").test(lower) || lower.includes(k));
+    return key ? PAYMENT_RULES[key] : null;
+  }
+
+  function detectType(text){
+    const lower=normalizeQuickText(text).toLowerCase();
+    if(/\b(salary|freelance|income|received|receive|got|refund|cashback|earned|earning|credited)\b/.test(lower)) return "Income";
+    if(/\b(spent|spend|paid|bought|buy|expense|cost|purchase|purchased)\b/.test(lower)) return "Expense";
+    return null;
+  }
+
+  function getKnownMerchants(){
+    // Only built-in rules and explicitly trusted mappings participate here.
+    // Raw/legacy merchant memory is never used for matching.
+    return [...new Set([
+      ...Object.keys(MERCHANT_RULES),
+      ...Object.keys(trustedMerchantMemory.Expense || {}),
+      ...Object.keys(trustedMerchantMemory.Income || {})
+    ])].sort((a,b)=>b.length-a.length);
+  }
+
+  function merchantTokenMatches(text, merchant){
+    const lower = normalizeQuickText(text).toLowerCase();
+    const escaped = String(merchant).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|\\s|[₹])${escaped}(?=$|\\s|[.,!?])`, "i").test(lower);
+  }
+
+  function detectMerchant(text){
+    const known = getKnownMerchants().find(k => merchantTokenMatches(text, k));
+    return known || null;
+  }
+
+  function inferMerchant(text){
+    let cleaned = normalizeQuickText(text).toLowerCase();
+    cleaned = cleaned
+      .replace(/\bday\s+before\s+yesterday\b/g,"")
+      .replace(/\byesterday\b|\btoday\b|\btomorrow\b/g,"")
+      .replace(/\b\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{2,4})?\b/g,"")
+      .replace(/\b(?:\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+\d{4})?|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}(?:\s+\d{4})?)\b/g,"")
+      .replace(/₹?\s*\d[\d,]*(?:\.\d+)?\s*(?:k|thousand|lakh|lac|l)?\b/g,"")
+      .replace(/\b(expense|income|spent|spend|paid|bought|buy|cost|purchase|purchased|received|receive|got|earned|earning|cashback|credited|on|from|for|using|via|with|google\s+pay|gpay|phonepe|upi|paytm|cash|credit\s+card|credit|debit\s+card|debit|net\s+banking|bank\s+transfer|wallet)\b/g,"")
+      .replace(/\s+/g," ").trim();
+
+    // Prefer a known merchant only on a token boundary. Never use a raw
+    // substring match: e.g. a learned "keyboard" rule must not affect an
+    // unrelated merchant/item such as "atta".
+    const known = getKnownMerchants().find(k=>merchantTokenMatches(cleaned,k));
+    return known || cleaned || null;
+  }
+
+  function parseQuickEntry(text){
+    let merchant=detectMerchant(text) || inferMerchant(text);
+    let type=detectType(text);
+    if(!type && merchant && ["salary","freelance","refund"].includes(merchant)) type="Income";
+    if(!type && merchant && merchantMemory.Income && merchantMemory.Income[merchant]) type="Income";
+    if(!type && merchant) type = "Expense";
+
+    // Safety guard: the old broken versions could have persisted tea → Education.
+    // Never allow that stale mapping to classify a new tea entry.
+    if(type === "Expense" && (merchant === "tea" || merchant === "tea paytm") &&
+       String(merchantMemory.Expense?.[merchant] || "").toLowerCase() === "education") {
+      delete merchantMemory.Expense[merchant];
+      saveMerchantMemory();
+    }
+
+    const parsedDate = parseDate(text);
+
+    // TEA SAFETY OVERRIDE:
+    // "tea" is a normal merchant/item and must never inherit a category from
+    // an old transaction or stale merchant-memory entry. Only an explicit
+    // user choice can teach tea a category later.
+    const teaMentioned = /\btea\b/i.test(normalizeQuickText(text));
+    if(teaMentioned && type === "Expense") {
+      merchant = "tea";
+      return {
+        amount:parseAmount(text),
+        date:parsedDate || todayISO(),
+        payment:detectPayment(text),
+        type,
+        merchant:"tea",
+        category:null,
+        merchantWasLearned:false,
+        merchantWasBuiltIn:false
+      };
+    }
+
+    const rememberedCategory = type ? lookupRememberedCategory(type, merchant) : null;
+    const builtInCategory = merchant && MERCHANT_RULES[merchant] ? MERCHANT_RULES[merchant][0] : null;
+
+    // If the user explicitly supplied a date, always preserve it.
+    // Learned categories are only used when lookupRememberedCategory explicitly
+    // returns one; there is no category inference from transaction history.
+    return {
+      amount:parseAmount(text),
+      date:parsedDate || todayISO(),
+      payment:detectPayment(text),
+      type,
+      merchant,
+      category: rememberedCategory || builtInCategory,
+      merchantWasLearned: !!rememberedCategory,
+      merchantWasBuiltIn: !!builtInCategory
+    };
+  }
+
+  function handleCategoryChangeCommand(text){
+    // Supports both:
+    //   change coffee category to food
+    //   change tea to food
+    const m = text.trim().match(/^change\s+(.+?)\s+(?:category\s+)?to\s+(.+)$/i);
+    if(!m) return false;
+
+    const merchant = m[1].trim().toLowerCase();
+    const requested = m[2].trim();
+
+    // A category-change command is itself an explicit instruction, so an
+    // unknown merchant does NOT need to have been learned beforehand.
+    // Default unknown merchants to Expense; known income merchants stay Income.
+    let type = null;
+    if(trustedMerchantMemory.Income[merchant]) type = "Income";
+    else if(trustedMerchantMemory.Expense[merchant]) type = "Expense";
+    else if(MERCHANT_RULES[merchant]) {
+      type = ["salary","freelance","refund"].includes(merchant) ? "Income" : "Expense";
+    } else {
+      type = "Expense";
+    }
+
+    const category = getCategories(type).find(c=>c.toLowerCase()===requested.toLowerCase());
+    if(category){
+      merchantMemory[type][merchant] = category;
+      trustedMerchantMemory[type][merchant] = category;
+      saveMerchantMemory();
+      saveTrustedMerchantMemory();
+      addBotMessage(`Updated <b>${escapeHtml(merchant)}</b> → <b>${escapeHtml(category)}</b>. I'll use <b>${escapeHtml(category)}</b> for future ${type.toLowerCase()} entries.`);
+      addBotMessage("Existing transactions are unchanged.");
+      addChoices([
+        {label:"Log transaction",primary:true,onClick:()=>{
+          draft={};
+          flowHistory=[];
+          renderQuickInput();
+        }},
+        {label:"Done",onClick:()=>{}}
+      ]);
+      return true;
+    }
+
+    addBotMessage(`I couldn't find a category called <b>${escapeHtml(requested)}</b>. Choose the category for <b>${escapeHtml(merchant)}</b>.`);
+    addChoices(getCategories(type).map(c=>({
+      label:c,
+      onClick:()=>{
+        merchantMemory[type][merchant]=c;
+        trustedMerchantMemory[type][merchant]=c;
+        saveMerchantMemory();
+        saveTrustedMerchantMemory();
+        addBotMessage(`Updated <b>${escapeHtml(merchant)}</b> → <b>${escapeHtml(c)}</b>. I'll use it for future entries.`);
+        addBotMessage("Existing transactions are unchanged.");
+        addChoices([
+          {label:"Log transaction",primary:true,onClick:()=>{draft={};flowHistory=[];renderQuickInput();}},
+          {label:"Done",onClick:()=>{}}
+        ]);
+      }
+    })));
+    addBackButton();
+    return true;
+  }
+
+  function getLastTransaction(){
+    if(lastSavedTransactionId){
+      const found = transactions.find(t=>t.id===lastSavedTransactionId);
+      if(found) return found;
+    }
+    return transactions.length ? transactions[transactions.length-1] : null;
+  }
+
+  async function undoLastTransaction(){
+    const txn = getLastTransaction();
+    if(!txn){
+      addBotMessage("There’s nothing to undo yet.");
+      return;
+    }
+    transactions = transactions.filter(t=>t.id !== txn.id);
+    await saveTransactions();
+    lastSavedTransactionId = transactions.length ? transactions[transactions.length-1].id : null;
+    renderBalance();
+    addBotMessage(`Undone. Removed <b>${escapeHtml(txn.merchant || txn.category)}</b> · ${fmt(txn.amount)}.`);
+    addChoices([
+      {label:"Log another",primary:true,onClick:()=>startFlow()},
+      {label:"View summary",onClick:()=>switchView("summary")}
+    ]);
+  }
+
+  function normalizeCorrectionCommand(text){
+    return normalizeQuickText(text).replace(/[₹,]/g,"").trim();
+  }
+
+  async function handleLastCorrection(text){
+    const raw = normalizeCorrectionCommand(text);
+    const m = raw.match(/^change\s+last\s+(amount|category|payment|date|merchant)\s+to\s+(.+)$/i);
+    if(!m) return false;
+    const txn = getLastTransaction();
+    if(!txn){ addBotMessage("There’s no saved transaction to change yet."); return true; }
+    const field = m[1].toLowerCase();
+    const value = m[2].trim();
+    if(field === "amount"){
+      const n = parseAmount(value);
+      if(!n){ addBotMessage("I couldn't read that amount. Try: <b>change last amount to 500</b>"); return true; }
+      txn.amount=n;
+    } else if(field === "category"){
+      const wanted = value.toLowerCase();
+      const cat = getCategories(txn.type).find(c=>c.toLowerCase()===wanted) || value;
+      txn.category=cat;
+    } else if(field === "payment"){
+      const detected = detectPayment(value);
+      const allowed = PAYMENT_METHODS.find(p=>p.toLowerCase()===value.toLowerCase()) || detected;
+      if(!allowed){ addBotMessage(`I don't recognize that payment method. Try <b>${PAYMENT_METHODS.join(", ")}</b>.`); return true; }
+      txn.payment=allowed;
+    } else if(field === "date"){
+      const d=parseDate(value);
+      if(!d){ addBotMessage("I couldn't read that date. Try <b>8 Sep</b>, <b>8/9</b>, or <b>yesterday</b>."); return true; }
+      txn.date=d+"T00:00:00";
+    } else if(field === "merchant"){
+      txn.merchant=value.toLowerCase();
+    }
+    await saveTransactions();
+    renderBalance();
+    addBotMessage(`Updated the last transaction: <b>${escapeHtml(txn.merchant || txn.category)}</b> · ${fmt(txn.amount)}.`);
+    addChoices([
+      {label:"Undo change",onClick:()=>undoCorrection(txn)},
+      {label:"Log another",primary:true,onClick:()=>startFlow()},
+      {label:"View summary",onClick:()=>switchView("summary")}
+    ]);
+    return true;
+  }
+
+  async function undoCorrection(txn){
+    // A lightweight correction undo: remove the current version and restore the
+    // previous snapshot captured when the correction button was created.
+    if(!txn || !txn.__beforeCorrection){ addBotMessage("I can only undo the latest change from this message."); return; }
+    const snapshot=txn.__beforeCorrection;
+    const idx=transactions.findIndex(t=>t.id===txn.id);
+    if(idx>=0) transactions[idx]=snapshot;
+    await saveTransactions();
+    delete snapshot.__beforeCorrection;
+    renderBalance();
+    addBotMessage("Change undone. The previous values are restored.");
+  }
+
+  function openEditLast(){
+    const txn=getLastTransaction();
+    if(!txn){ addBotMessage("There’s no saved transaction to edit yet."); return; }
+    const before=JSON.parse(JSON.stringify(txn));
+    const row=document.createElement("div"); row.className="msg-row bot";
+    const wrap=document.createElement("div"); wrap.className="input-row";
+    const input=document.createElement("input"); input.type="text"; input.placeholder='e.g. "change amount to 500"';
+    const btn=document.createElement("button"); btn.className="send"; btn.textContent="Change";
+    async function submit(){
+      const v=input.value.trim(); if(!v) return;
+      input.disabled=true; btn.disabled=true;
+      const cmd=v.toLowerCase().startsWith("change last ") ? v : "change last "+v;
+      txn.__beforeCorrection=before;
+      await handleLastCorrection(cmd);
+      delete txn.__beforeCorrection;
+    }
+    input.addEventListener("keydown",e=>{if(e.key==="Enter")submit()}); btn.onclick=submit;
+    wrap.appendChild(input); wrap.appendChild(btn); row.appendChild(wrap); chatLog.appendChild(row); chatLog.scrollTop=chatLog.scrollHeight; input.focus();
+  }
+
+  function handleQuickCommand(text){
+    if(handleTransactionSearchQuery(text)) return true;
+    if(handleAlertQuery(text)) return true;
+    if(handleBudgetQuery(text)) return true;
+    if(handleInsightQuery(text)) return true;
+    if(handleQueryCommand(text)) return true;
+    const lower=normalizeQuickText(text).toLowerCase();
+    if(/^(undo|undo last|delete last|remove last)$/.test(lower)){
+      undoLastTransaction(); return true;
+    }
+    if(/^change\s+last\s+/.test(lower)){
+      handleLastCorrection(text); return true;
+    }
+    return false;
+  }
+
+  function handleQuickInput(text){
+    // Search, budget and information queries are completed actions, not
+    // transaction-flow steps. Always intercept them before the transaction parser.
+    const handledQuery = handleTransactionSearchQuery(text) || handleAlertQuery(text) || handleBudgetQuery(text) || handleInsightQuery(text) || handleQueryCommand(text);
+    if(handledQuery){
+      setTimeout(()=>{
+        if(document.getElementById("chat-view")?.style.display !== "none"){
+          renderQuickInput();
+        }
+      }, 50);
+      return;
+    }
+    const lower=normalizeQuickText(text).toLowerCase();
+    if(/^(undo|undo last|delete last|remove last)$/.test(lower)){
+      undoLastTransaction();
+      renderQuickInput();
+      return;
+    }
+    if(/^change\s+last\s+/.test(lower)){
+      handleLastCorrection(text);
+      return;
+    }
+    if(handleCategoryChangeCommand(text)) return;
+    const parsed = parseQuickEntry(text);
+    flowHistory.push({step:"quick", draft:{}, prefill:text});
+    draft = {...parsed, raw:text};
+    if(!draft.merchant) draft.merchant = inferMerchant(text);
+
+    if(!draft.amount){
+      addBotMessage("I couldn't find an amount. How much was it?");
+      addInputRow("e.g. 250 or 1.2k",{
+        numeric:true,
+        buttonLabel:"Next",
+        onSubmit:n=>{
+          flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft))});
+          draft.amount=n;
+          continueAfterQuick();
+        }
+      });
+      addBackButton();
+      return;
+    }
+    continueAfterQuick();
+  }
+
+  function continueAfterQuick(){
+    if(!draft.type){
+      flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft)), reason:"type"});
+      showTyping(()=>{
+        addBotMessage("Is this an expense or income?");
+        addChoices([
+          {label:"Expense",onClick:()=>{draft.type="Expense";continueAfterQuick();}},
+          {label:"Income",onClick:()=>{draft.type="Income";continueAfterQuick();}}
+        ]);
+        addBackButton();
+      });
+      return;
+    }
+
+    if(!draft.category){
+      flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft)), reason:"category"});
+      showTyping(()=>{
+        addBotMessage("Which category?");
+        addChoices([
+          ...getCategories(draft.type).map(c=>({
+            label:c,
+            onClick:()=>{draft.category=c;continueAfterQuick();}
+          })),
+          {
+            label:"+ Add category",
+            primary:true,
+            onClick:()=>{
+              askForNewCategory(draft.type, (name)=>{
+                if(name){
+                  draft.category=name;
+                  continueAfterQuick();
+                }
+              });
+            }
+          }
+        ]);
+        addBackButton();
+      });
+      return;
+    }
+
+    if(!draft.payment){
+      // Ask to remember only once, and only for a genuinely new merchant.
+      if(draft.merchant && !draft.merchantWasLearned &&
+         !draft.merchantWasBuiltIn && draft.category &&
+         draft._rememberDecision !== "no"){
+        flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft)), reason:"remember"});
+        showTyping(()=>{
+          addBotMessage(`Should I remember <b>${escapeHtml(draft.merchant)}</b> as <b>${escapeHtml(draft.category)}</b> for next time?`);
+          addChoices([
+            {label:"Yes, remember", primary:true, onClick:()=>{
+              rememberMerchant(draft.type,draft.merchant,draft.category);
+              draft.merchantWasLearned = true;
+              draft._rememberDecision = "yes";
+              continueAfterQuick();
+            }},
+            {label:"No, just this time", onClick:()=>{
+              draft._rememberDecision = "no";
+              continueAfterQuick();
+            }}
+          ]);
+          addBackButton();
+        });
+        return;
+      }
+
+      flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft)), reason:"payment"});
+      showTyping(()=>{
+        addBotMessage("How'd you pay?");
+        addChoices(PAYMENT_METHODS.map(p=>({
+          label:p,
+          onClick:()=>{draft.payment=p;continueAfterQuick();}
+        })));
+        addBackButton();
+      });
+      return;
+    }
+
+    if(!draft.date) draft.date=todayISO();
+    showConfirm();
+  }
+
+  // ---------- guided flow ----------
+  function pickType(type){
+    addUserMessage(type);
+    flowHistory.push({step:"type",draft:JSON.parse(JSON.stringify(draft))});
+    draft={...draft,type}; step="category";
+    showTyping(()=>{
+      addBotMessage("Which category?");
+      addChoices([
+        ...getCategories(type).map(c=>({label:c,onClick:()=>pickCategory(c)})),
+        {
+          label:"+ Add category",
+          primary:true,
+          onClick:()=>{
+            askForNewCategory(type, (name)=>{
+              if(name) pickCategory(name);
+            });
+          }
+        }
+      ]);
+      addBackButton();
+    });
+  }
+
+  function pickCategory(cat){
+    addUserMessage(cat);
+    flowHistory.push({step:"category",draft:JSON.parse(JSON.stringify(draft))});
+    draft.category=cat; step="amount";
+    showTyping(()=>{
+      addInputRow("e.g. 1,250",{numeric:true,buttonLabel:"Next",onSubmit:n=>pickAmount(n)});
+      addBackButton();
+    });
+  }
+
+  function pickAmount(n){
+    addUserMessage(fmt(n));
+    flowHistory.push({step:"amount",draft:JSON.parse(JSON.stringify(draft))});
+    draft.amount=n; step="payment";
+    showTyping(()=>{
+      addBotMessage("How'd you pay?");
+      addChoices(PAYMENT_METHODS.map(p=>({label:p,onClick:()=>pickPayment(p)})));
+      addBackButton();
+    });
+  }
+
+  function pickPayment(p){
+    addUserMessage(p);
+    flowHistory.push({step:"payment",draft:JSON.parse(JSON.stringify(draft))});
+    draft.payment=p; step="date";
+    showTyping(()=>{
+      addBotMessage("What date should this transaction use?");
+      addDateInput(draft.date || todayISO(), d=>pickDate(d));
+      addBackButton();
+    });
+  }
+
+  function pickDate(date){
+    addUserMessage(formatDisplayDate(date));
+    flowHistory.push({step:"date",draft:JSON.parse(JSON.stringify(draft))});
+    draft.date=date; step="note";
+    showTyping(()=>{
+      addInputRow("Add a note (optional)",{
+        buttonLabel:"Add",skippable:true,
+        onSubmit:val=>pickNote(val),onSkip:()=>pickNote("")
+      });
+      addBackButton();
+    });
+  }
+
+  function pickNote(note){
+    if(note) addUserMessage(note);
+    flowHistory.push({step:"note",draft:JSON.parse(JSON.stringify(draft))});
+    draft.note=note;
+    showConfirm();
+  }
+
+  function showConfirm(){
+    showTyping(() => {
+      const card = document.createElement("div");
+      card.className = "confirm-card";
+      const amtClass = draft.type === "Income" ? "" : "";
+      card.innerHTML = `
+        <div class="row"><span class="k">Date</span><span class="v">${new Date(draft.date + "T00:00:00").toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"})}</span></div>
+        <div class="row"><span class="k">Type</span><span class="v">${draft.type}</span></div>
+        <div class="row"><span class="k">Category</span><span class="v">${draft.category}</span></div>
+        <div class="row"><span class="k">Amount</span><span class="v">${fmt(draft.amount)}</span></div>
+        <div class="row"><span class="k">Payment</span><span class="v">${draft.payment}</span></div>
+        ${draft.note ? `<div class="row"><span class="k">Note</span><span class="v">${escapeHtml(draft.note)}</span></div>` : ""}
+      `;
+      const row = document.createElement("div");
+      row.className = "msg-row bot";
+      row.appendChild(card);
+      chatLog.appendChild(row);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      addChoices([
+        { label: "Confirm", primary: true, onClick: () => confirmEntry() },
+        { label: "Edit", onClick: () => openEditDraft() },
+        { label: "Discard", danger: true, onClick: () => discardEntry() },
+      ]);
+    });
+  }
+
+  function escapeHtml(s){
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function openEditDraft(){
+    addBotMessage('Edit with a command like <b>amount to 500</b>, <b>category to Food</b>, <b>payment to GPay</b>, <b>date to yesterday</b>, or <b>merchant to coffee</b>.');
+    const row=document.createElement("div"); row.className="msg-row bot";
+    const wrap=document.createElement("div"); wrap.className="input-row";
+    const input=document.createElement("input"); input.type="text"; input.placeholder='e.g. "amount to 500"';
+    const btn=document.createElement("button"); btn.className="send"; btn.textContent="Update";
+    function submit(){
+      const v=input.value.trim(); if(!v) return;
+      input.disabled=true; btn.disabled=true;
+      const m=v.match(/^(?:change\s+)?(amount|category|payment|date|merchant)\s+to\s+(.+)$/i);
+      if(!m){
+        input.disabled=false; btn.disabled=false; input.focus();
+        addBotMessage("Try: <b>amount to 500</b> or <b>change amount to 500</b>.");
+        return;
+      }
+      const field=m[1].toLowerCase(), value=m[2].trim();
+      if(field==="amount"){ const n=parseAmount(value); if(!n){ input.disabled=false; btn.disabled=false; input.focus(); addBotMessage("I couldn't read that amount. Try <b>amount to 500</b>."); return;} draft.amount=n; }
+      else if(field==="category"){ draft.category=value; }
+      else if(field==="payment"){ const p=PAYMENT_METHODS.find(x=>x.toLowerCase()===value.toLowerCase())||detectPayment(value); if(!p){ input.disabled=false; btn.disabled=false; input.focus(); addBotMessage("I don't recognize that payment method. Try <b>payment to GPay</b>."); return;} draft.payment=p; }
+      else if(field==="date"){ const d=parseDate(value); if(!d){ input.disabled=false; btn.disabled=false; input.focus(); addBotMessage("I couldn't read that date. Try <b>date to yesterday</b>."); return;} draft.date=d; }
+      else if(field==="merchant"){ draft.merchant=value.toLowerCase(); }
+      showConfirm();
+    }
+    input.addEventListener("keydown",e=>{if(e.key==="Enter")submit()}); btn.onclick=submit;
+    wrap.appendChild(input); wrap.appendChild(btn); row.appendChild(wrap); chatLog.appendChild(row); chatLog.scrollTop=chatLog.scrollHeight; input.focus();
+  }
+
+  async function confirmEntry(){
+    const txn = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      type: draft.type,
+      category: draft.category,
+      merchant: draft.merchant || "",
+      amount: draft.amount,
+      payment: draft.payment,
+      note: draft.note || "",
+      date: draft.date ? (draft.date + "T00:00:00") : new Date().toISOString()
+    };
+    transactions.push(txn);
+    lastSavedTransactionId = txn.id;
+    await saveTransactions();
+    renderBalance();
+
+    showTyping(() => {
+      const net = getNet();
+      const cls = net >= 0 ? "" : "neg";
+      addBotMessage(`Logged. Balance is now <span class="highlight-amt ${cls}">${fmt(net)}</span>.`);
+      addChoices([
+        { label: "Undo", onClick: () => undoLastTransaction() },
+        { label: "Log another", primary: true, onClick: () => startFlow() },
+        { label: "View summary", onClick: () => switchView("summary") },
+      ]);
+    });
+  }
+
+  function discardEntry(){
+    showTyping(() => {
+      addBotMessage("Discarded. Starting over.");
+      startFlow();
+    });
+  }
+
+  // ---------- totals ----------
+  function getIncome(){ return transactions.filter(t=>t.type==="Income").reduce((s,t)=>s+t.amount,0); }
+  function getExpense(){ return transactions.filter(t=>t.type==="Expense").reduce((s,t)=>s+t.amount,0); }
+  function getNet(){ return getIncome() - getExpense(); }
+
+  function renderBalance(){
+    const net = getNet();
+    headerBalance.textContent = fmt(net);
+    headerBalance.style.color = net >= 0 ? "var(--mint)" : "var(--red)";
+  }
+
+  // ---------- recurring transactions ----------
+  function recurringMonthKey(year, month, ruleId){ return `${ruleId}:${year}-${String(month+1).padStart(2,"0")}`; }
+
+  function daysInMonth(year, month){ return new Date(year, month+1, 0).getDate(); }
+
+  function ensureRecurringTransactions(){
+    if(!Array.isArray(recurringRules) || !recurringRules.length) return false;
+    const now=new Date(); now.setHours(23,59,59,999);
+    let changed=false;
+    recurringRules.filter(r=>r.active!==false).forEach(r=>{
+      const start = new Date((r.startDate||todayISO())+"T00:00:00");
+      const startKey = `${start.getFullYear()}-${String(start.getMonth()+1).padStart(2,"0")}`;
+      const startMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+      const cursor = new Date(startMonth);
+      while(cursor <= new Date(now.getFullYear(), now.getMonth(), 1)){
+        const y=cursor.getFullYear(), m=cursor.getMonth();
+        const day=Math.min(Number(r.dayOfMonth)||1, daysInMonth(y,m));
+        const due=new Date(y,m,day); due.setHours(23,59,59,999);
+        if(due <= now && due >= start){
+          const key=recurringMonthKey(y,m,r.id);
+          const exists=transactions.some(t=>t.recurringKey===key);
+          if(!exists){
+            transactions.push({
+              id:"rec_"+key.replace(/[^a-z0-9:-]/gi,"_")+"_"+Math.random().toString(36).slice(2,6),
+              type:r.type, category:r.category, merchant:r.merchant||"", amount:Number(r.amount), payment:r.payment||"Other", note:r.note||"Recurring · "+(r.name||r.merchant||r.category),
+              date:toDateInputValue(due)+"T00:00:00", recurringKey:key, recurringRuleId:r.id
+            });
+            changed=true;
+          }
+        }
+        cursor.setMonth(cursor.getMonth()+1);
+      }
+    });
+    if(changed){ saveTransactions(); renderBalance(); }
+    return changed;
+  }
+
+  function addRecurringRule(rule){
+    const clean={...rule,id:"rr_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),active:true,dayOfMonth:Math.max(1,Math.min(31,Number(rule.dayOfMonth)||1)),startDate:rule.startDate||todayISO()};
+    recurringRules.push(clean); saveRecurringRules(); ensureRecurringTransactions(); renderSummary();
+    return clean;
+  }
+
+  function removeRecurringRule(id){
+    const rule=recurringRules.find(r=>r.id===id); if(!rule) return;
+    rule.active=false; saveRecurringRules(); renderSummary();
+  }
+
+  function dateLabelForQuery(date){ return new Date(date+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}); }
+
+  function monthKeyFromOffset(offset){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+offset); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+
+  function monthLabelFromKey(key){ const [y,m]=key.split("-").map(Number); return new Date(y,m-1,1).toLocaleDateString(undefined,{month:"long",year:"numeric"}); }
+
+  function queryMonthTransactions(key){ return transactions.filter(t=>txnDateKey(t).startsWith(key)); }
+
+  // ---------- natural queries / dashboard helpers ----------
+  function localDateKey(date=new Date()){
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,"0");
+    const d=String(date.getDate()).padStart(2,"0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function txnDateKey(t){
+    return String(t.date||"").split("T")[0];
+  }
+
+  function currentMonthKey(){
+    const d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+
+  function currentMonthTransactions(){
+    const key=currentMonthKey();
+    return transactions.filter(t=>txnDateKey(t).startsWith(key));
+  }
+
+  function formatCategoryList(items){
+    const entries=Object.entries(items).sort((a,b)=>b[1]-a[1]);
+    if(!entries.length) return "Nothing logged yet.";
+    return entries.slice(0,6).map(([name,amount])=>`<b>${escapeHtml(name)}</b> · ${fmt(amount)}`).join("<br>");
+  }
+
+  function monthName(){
+    return new Date().toLocaleDateString(undefined,{month:"long",year:"numeric"});
+  }
+
+  // ---------- transaction search / filter ----------
+  function normalizeSearchValue(v){ return normalizeQuickText(v).toLowerCase(); }
+
+  function transactionMatchesSearch(t, filters){
+    const merchant=normalizeSearchValue(t.merchant||"");
+    const category=normalizeSearchValue(t.category||"");
+    const payment=normalizeSearchValue(t.payment||"");
+    const note=normalizeSearchValue(t.note||"");
+    const haystack=[merchant,category,payment,note].join(" ");
+    if(filters.term && !haystack.includes(filters.term)) return false;
+    if(filters.type && t.type!==filters.type) return false;
+    if(filters.category && category!==filters.category) return false;
+    if(filters.payment && payment!==filters.payment) return false;
+    if(filters.date && txnDateKey(t)!==filters.date) return false;
+    if(filters.month && !txnDateKey(t).startsWith(filters.month)) return false;
+    if(filters.minAmount!=null && Number(t.amount||0)<filters.minAmount) return false;
+    if(filters.maxAmount!=null && Number(t.amount||0)>filters.maxAmount) return false;
+    return true;
+  }
+
+  function formatSearchResult(t){
+    const date=txnDateKey(t);
+    return `${t.type==="Income"?"+":"-"}${fmt(t.amount)} · <b>${escapeHtml(t.merchant||t.category||"Uncategorized")}</b> · ${escapeHtml(t.category||"Uncategorized")} · ${escapeHtml(t.payment||"—")} · ${escapeHtml(date)}`;
+  }
+
+  function renderSearchResults(items, label="Matching transactions"){
+    if(!items.length){ addBotMessage(`No transactions found${label?` for <b>${escapeHtml(label)}</b>`:""}.`); return; }
+    const total=items.reduce((s,t)=>s+Number(t.amount||0),0);
+    const expenses=items.filter(t=>t.type==="Expense").reduce((s,t)=>s+Number(t.amount||0),0);
+    const income=items.filter(t=>t.type==="Income").reduce((s,t)=>s+Number(t.amount||0),0);
+    addBotMessage(`<b>${items.length}</b> matching transaction${items.length===1?"":"s"}. ${expenses?`Expenses: <span class="highlight-amt">${fmt(expenses)}</span>. `:""}${income?`Income: <span class="highlight-amt">${fmt(income)}</span>.`:""}`);
+    addBotMessage(items.slice().sort((a,b)=>txnDateKey(b).localeCompare(txnDateKey(a))).slice(0,20).map(formatSearchResult).join("<br>"));
+    if(items.length>20) addBotMessage(`Showing the latest 20 of ${items.length} matches. Use Summary → Transaction Search for the full filtered list.`);
+  }
+
+  function handleTransactionSearchQuery(text){
+    const lower=normalizeSearchValue(text);
+    let m;
+
+    // "show all swiggy transactions", "list uber expenses", "show my food expenses"
+    m=lower.match(/^(?:show|list|find)(?: all| my)?\s+(.+?)\s+(transactions|expenses|spending|purchases)\??$/);
+    if(m){
+      const target=m[1].trim();
+      const exactCat=getCategories("Expense").find(c=>c.toLowerCase()===target);
+      const items=transactions.filter(t=>transactionMatchesSearch(t,{term:exactCat?"":target,category:exactCat?exactCat.toLowerCase():"",type:(m[2]==="expenses"||m[2]==="spending"||m[2]==="purchases")?"Expense":""}));
+      renderSearchResults(items,target); return true;
+    }
+
+    // "show transactions using paytm/gpay/cash"
+    m=lower.match(/^(?:show|list|find)(?: all| my)?\s+(?:transactions|expenses)\s+(?:using|via|with)\s+(.+?)\??$/);
+    if(m){
+      const detected=detectPayment(m[1]);
+      const payment=(detected||m[1]).toLowerCase();
+      const items=transactions.filter(t=>normalizeSearchValue(t.payment)===payment);
+      renderSearchResults(items,`payment ${payment}`); return true;
+    }
+
+    // "show expenses above 1000", "transactions over 5k"
+    m=lower.match(/^(?:show|list|find)(?: all| my)?\s+(expenses|transactions)\s+(?:above|over|greater than|more than)\s+(.+?)\??$/);
+    if(m){
+      const n=parseAmount(m[2]);
+      if(!n){ addBotMessage("I couldn't read that amount. Try <b>show expenses above 1000</b>."); return true; }
+      const items=transactions.filter(t=>(m[1]==="expenses"?t.type==="Expense":true) && Number(t.amount||0)>n);
+      renderSearchResults(items,`${m[1]} above ${fmt(n)}`); return true;
+    }
+
+    // "show expenses between 500 and 2000"
+    m=lower.match(/^(?:show|list|find)(?: all| my)?\s+(expenses|transactions)\s+between\s+(.+?)\s+and\s+(.+?)\??$/);
+    if(m){
+      const a=parseAmount(m[2]), b=parseAmount(m[3]);
+      if(!a || !b){ addBotMessage("I couldn't read that range. Try <b>show expenses between 500 and 2000</b>."); return true; }
+      const lo=Math.min(a,b), hi=Math.max(a,b);
+      const items=transactions.filter(t=>(m[1]==="expenses"?t.type==="Expense":true) && Number(t.amount||0)>=lo && Number(t.amount||0)<=hi);
+      renderSearchResults(items,`${fmt(lo)}–${fmt(hi)}`); return true;
+    }
+
+    // "show transactions on yesterday / 8 sep" is already handled by the date query,
+    // but this supports "show all transactions" as a useful catch-all.
+    if(/^(?:show|list|find)(?: all| my)?\s+(?:transactions|expenses)\??$/.test(lower)){
+      const type=/expenses/.test(lower)?"Expense":"";
+      renderSearchResults(transactions.filter(t=>!type||t.type===type),type||"all transactions"); return true;
+    }
+    return false;
+  }
+
+  function handleQueryCommand(text){
+    const raw=normalizeQuickText(text).trim();
+    const lower=raw.toLowerCase();
+
+    // Date / month queries
+    let dm = lower.match(/^(?:how much did i spend|how much have i spent|what did i spend|what have i spent)(?: (?:on|in))? (.+?)\??$/);
+    if(dm){
+      const target=dm[1].trim();
+      let date=parseDate(target);
+      if(date){
+        const tx=transactions.filter(t=>t.type==="Expense" && txnDateKey(t)===date);
+        const total=tx.reduce((s,t)=>s+Number(t.amount||0),0);
+        addBotMessage(`You spent <span class="highlight-amt">${fmt(total)}</span> on <b>${escapeHtml(dateLabelForQuery(date))}</b>.`);
+        addChoices([{label:"View summary",primary:true,onClick:()=>switchView("summary")}]);
+        return true;
+      }
+      let mk=null;
+      if(/^(?:last month)$/.test(target)) mk=monthKeyFromOffset(-1);
+      else if(/^(?:this month|current month)$/.test(target)) mk=monthKeyFromOffset(0);
+      else {
+        const mm=target.match(/^(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?:\s+(\d{4}))?$/);
+        if(mm){ const months={jan:0,january:0,feb:1,february:1,mar:2,march:2,apr:3,april:3,may:4,jun:5,june:5,jul:6,july:6,aug:7,august:7,sep:8,september:8,oct:9,october:9,nov:10,november:10,dec:11,december:11}; const y=mm[2]?Number(mm[2]):new Date().getFullYear(); mk=`${y}-${String(months[mm[1]]+1).padStart(2,"0")}`; }
+      }
+      if(mk){ const total=queryMonthTransactions(mk).filter(t=>t.type==="Expense").reduce((s,t)=>s+Number(t.amount||0),0); addBotMessage(`You spent <span class="highlight-amt">${fmt(total)}</span> in <b>${escapeHtml(monthLabelFromKey(mk))}</b>.`); addChoices([{label:"View summary",primary:true,onClick:()=>switchView("summary")}]); return true; }
+    }
+
+    if(/^(?:show|list) (?:my )?(?:transactions|expenses) (?:on|for) (.+?)\??$/.test(lower)){
+      const m2=lower.match(/^(?:show|list) (?:my )?(?:transactions|expenses) (?:on|for) (.+?)\??$/);
+      const date=parseDate(m2[1].trim());
+      if(date){ const tx=transactions.filter(t=>txnDateKey(t)===date); if(!tx.length) addBotMessage(`No transactions found on <b>${escapeHtml(dateLabelForQuery(date))}</b>.`); else addBotMessage(tx.map(t=>`${t.type==="Income"?"+":"-"}${fmt(t.amount)} · <b>${escapeHtml(t.merchant||t.category)}</b> · ${escapeHtml(t.category)} · ${escapeHtml(t.payment)}`).join("<br>")); return true; }
+    }
+
+    if(/^(?:what|which) (?:recurring|recurring transactions|bills) do i have\??$/.test(lower) || /^(?:show|list) recurring(?: transactions| bills)?\??$/.test(lower)){
+      const active=recurringRules.filter(r=>r.active!==false); if(!active.length) addBotMessage("You don't have any recurring transactions yet. Add one from Summary → Recurring transactions."); else addBotMessage(active.map(r=>`<b>${escapeHtml(r.name||r.merchant||r.category)}</b> · ${fmt(r.amount)} · monthly on the ${r.dayOfMonth}${[1,21,31].includes(Number(r.dayOfMonth))?'st':[2,22].includes(Number(r.dayOfMonth))?'nd':[3,23].includes(Number(r.dayOfMonth))?'rd':'th'}`).join("<br>")); return true;
+    }
+
+    // Balance / totals
+    if(/^(what(?:'s| is) )?(my )?balance\??$/.test(lower) || /^balance\??$/.test(lower)){
+      addBotMessage(`Your current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
+      return true;
+    }
+
+    // Spending insight queries must be handled before transaction parsing.
+    if (/^(?:what is|what's|which is|which) (?:my )?(?:the )?(?:most spent|highest spending|top spending) category\??$/.test(lower) ||
+        /^(?:what category did i spend (?:the )?most on|where did i spend (?:the )?most)\??$/.test(lower) ||
+        /^(?:most spent category|top spending category|highest spending category)\??$/.test(lower)) {
+      const mt = currentMonthTransactions().filter(t=>t.type==="Expense");
+      const totals = {};
+      mt.forEach(t=>{ const c=String(t.category||"Uncategorized"); totals[c]=(totals[c]||0)+Number(t.amount||0); });
+      const top = Object.entries(totals).sort((a,b)=>b[1]-a[1])[0];
+      if(!top) addBotMessage(`No expenses recorded in ${monthName()} yet.`);
+      else addBotMessage(`Your highest spending category this month is <b>${escapeHtml(top[0])}</b> at <span class="highlight-amt">${fmt(top[1])}</span>.`);
+      return true;
+    }
+
+    const monthMatch=lower.match(/^(?:how much|what) (?:did i|have i) (spend|spent|earn|earned)(?: this month)?\??$/);
+    if(monthMatch){
+      const mt=currentMonthTransactions();
+      const amount=monthMatch[1].startsWith("spend") ? mt.filter(t=>t.type==="Expense").reduce((s,t)=>s+t.amount,0) : mt.filter(t=>t.type==="Income").reduce((s,t)=>s+t.amount,0);
+      const label=monthMatch[1].startsWith("spend")?"spending":"income";
+      addBotMessage(`You have ${label} <span class="highlight-amt">${fmt(amount)}</span> in ${monthName()}.`);
+      return true;
+    }
+
+    if(/^(?:how much|what) did i spend this month\??$/.test(lower) || /^expenses this month\??$/.test(lower)){
+      const amount=currentMonthTransactions().filter(t=>t.type==="Expense").reduce((s,t)=>s+t.amount,0);
+      addBotMessage(`You've spent <span class="highlight-amt">${fmt(amount)}</span> in ${monthName()}.`);
+      return true;
+    }
+
+    if(/^(?:how much|what) did i earn this month\??$/.test(lower) || /^income this month\??$/.test(lower)){
+      const amount=currentMonthTransactions().filter(t=>t.type==="Income").reduce((s,t)=>s+t.amount,0);
+      addBotMessage(`You've received <span class="highlight-amt">${fmt(amount)}</span> in ${monthName()}.`);
+      return true;
+    }
+
+    // Category / merchant queries. We intentionally require "spend" or "spent"
+    // so ordinary transaction phrases don't get intercepted.
+    let m=lower.match(/^how much (?:did i|have i) spend(?:t)? on (.+?)(?: this month)?\??$/);
+    if(m){
+      const target=m[1].trim();
+      const mt=currentMonthTransactions().filter(t=>t.type==="Expense");
+      const exactCat=getCategories("Expense").find(c=>c.toLowerCase()===target);
+      const total=mt.filter(t=>{
+        const merchant=String(t.merchant||"").toLowerCase();
+        return exactCat ? t.category.toLowerCase()===exactCat.toLowerCase() : merchant===target;
+      }).reduce((s,t)=>s+t.amount,0);
+      const label=exactCat||target;
+      addBotMessage(`You've spent <span class="highlight-amt">${fmt(total)}</span> on <b>${escapeHtml(label)}</b> in ${monthName()}.`);
+      return true;
+    }
+
+    m=lower.match(/^show (?:my )?(?:expenses|spending) (?:for|on) (.+?)(?: this month)?\??$/);
+    if(m){
+      const target=m[1].trim();
+      const exactCat=getCategories("Expense").find(c=>c.toLowerCase()===target);
+      const mt=currentMonthTransactions().filter(t=>t.type==="Expense").filter(t=>exactCat ? t.category.toLowerCase()===exactCat.toLowerCase() : String(t.merchant||"").toLowerCase()===target);
+      if(!mt.length){ addBotMessage(`No ${exactCat||escapeHtml(target)} expenses found in ${monthName()}.`); return true; }
+      const total=mt.reduce((s,t)=>s+t.amount,0);
+      addBotMessage(`<b>${escapeHtml(exactCat||target)}</b>: ${fmt(total)} across ${mt.length} transaction${mt.length===1?'':'s'}.`);
+      addChoices([{label:"View summary",primary:true,onClick:()=>switchView("summary")}]);
+      return true;
+    }
+
+    if(/^(?:summary|dashboard|show summary|show dashboard)$/.test(lower)){
+      // Navigation command: switch views directly and defensively.
+      // Do not depend on the chat flow after this command.
+      try {
+        tabSummary.classList.add("active");
+        tabChat.classList.remove("active");
+        chatViewEl.style.display = "none";
+        summaryViewEl.style.display = "block";
+        renderSummary();
+      } catch(e) {
+        console.error("Dashboard navigation error", e);
+        // If dashboard rendering ever fails, keep the assistant usable.
+        chatViewEl.style.display = "flex";
+        summaryViewEl.style.display = "none";
+        addBotMessage("I couldn't open the dashboard. Please tap Summary at the top.");
+        renderQuickInput();
+      }
+      return true;
+    }
+
+    if(/^(?:recent|recent transactions|show recent transactions)$/.test(lower)){
+      const recent=[...transactions].reverse().slice(0,5);
+      if(!recent.length){ addBotMessage("No transactions logged yet."); return true; }
+      addBotMessage(recent.map(t=>`${t.type==="Income"?"+":"-"}${fmt(t.amount)} · <b>${escapeHtml(t.merchant||t.category)}</b> · ${escapeHtml(t.category)}`).join("<br>"));
+      return true;
+    }
+
+    return false;
+  }
+
+  // ---------- budgets & analytics ----------
+  function monthKeyOffset(offset){
+    const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+offset);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  }
+
+  function monthLabelFromKey(key){
+    const [y,m]=key.split("-").map(Number);
+    return new Date(y,m-1,1).toLocaleDateString(undefined,{month:"short"});
+  }
+
+  function monthExpenseTotal(key){
+    return transactions.filter(t=>t.type==="Expense" && txnDateKey(t).startsWith(key)).reduce((s,t)=>s+Number(t.amount||0),0);
+  }
+
+  function categoryMonthTotal(category,key){
+    return transactions.filter(t=>t.type==="Expense" && txnDateKey(t).startsWith(key) && String(t.category||"").toLowerCase()===String(category).toLowerCase()).reduce((s,t)=>s+Number(t.amount||0),0);
+  }
+
+  function budgetStatus(category){
+    const limit=Number(budgets.Expense?.[category]||0);
+    if(!limit) return null;
+    const spent=categoryMonthTotal(category,currentMonthKey());
+    return {limit,spent,remaining:limit-spent,pct:Math.min(100,(spent/limit)*100)};
+  }
+
+  function handleBudgetQuery(text){
+    const lower=normalizeQuickText(text).toLowerCase();
+    if(/^(?:show|view) budgets?$/.test(lower) || /^my budgets?$/.test(lower)) {
+      const entries=Object.entries(budgets.Expense||{}).filter(([,v])=>Number(v)>0);
+      if(!entries.length){ addBotMessage("You don't have any category budgets yet. Add them from Summary → Budgets."); }
+      else addBotMessage(entries.map(([c,v])=>{const st=budgetStatus(c); return `<b>${escapeHtml(c)}</b> · ${fmt(st.spent)} / ${fmt(st.limit)}${st.spent>st.limit?" · <b>over budget</b>":""}`;}).join("<br>"));
+      return true;
+    }
+    let m=lower.match(/^how much (?:can i|do i have left to) spend on (.+?)(?: this month)?\??$/);
+    if(m){
+      const target=m[1].trim();
+      const cat=getCategories("Expense").find(c=>c.toLowerCase()===target);
+      if(!cat || !budgets.Expense?.[cat]) { addBotMessage(`I don't have a budget set for <b>${escapeHtml(cat||target)}</b> yet.`); return true; }
+      const st=budgetStatus(cat);
+      addBotMessage(st.remaining>=0 ? `You have <span class="highlight-amt">${fmt(st.remaining)}</span> left for <b>${escapeHtml(cat)}</b> this month.` : `<b>${escapeHtml(cat)}</b> is <span class="highlight-amt">${fmt(Math.abs(st.remaining))}</span> over budget this month.`);
+      return true;
+    }
+    m=lower.match(/^(?:am i|are we) over budget(?: on (.+?))?\??$/);
+    if(m){
+      const target=m[1]?.trim();
+      const entries=Object.entries(budgets.Expense||{}).filter(([,v])=>Number(v)>0).map(([c])=>[c,budgetStatus(c)]).filter(([,st])=>st && st.spent>st.limit);
+      if(target){ const cat=getCategories("Expense").find(c=>c.toLowerCase()===target); const st=cat?budgetStatus(cat):null; addBotMessage(st ? (st.spent>st.limit ? `<b>${escapeHtml(cat)}</b> is over budget by <span class="highlight-amt">${fmt(st.spent-st.limit)}</span>.` : `<b>${escapeHtml(cat)}</b> is within budget.`) : `I don't have a budget for <b>${escapeHtml(target)}</b>.`); }
+      else addBotMessage(entries.length ? `You're over budget in <b>${escapeHtml(entries[0][0])}</b>${entries.length>1?` and ${entries.length-1} other categor${entries.length-1===1?'y':'ies'}`:""}.` : "You're within all your set category budgets this month.");
+      return true;
+    }
+    if(/^(?:compare|comparison) (?:this month|monthly spending|spending)$/.test(lower) || /^how does this month compare$/.test(lower)){
+      const cur=monthExpenseTotal(currentMonthKey()), prev=monthExpenseTotal(monthKeyOffset(-1));
+      const diff=cur-prev; const pct=prev?Math.abs(diff/prev*100):null;
+      addBotMessage(prev ? `This month you've spent <span class="highlight-amt">${fmt(cur)}</span> vs <span class="highlight-amt">${fmt(prev)}</span> last month — ${diff>=0?"up":"down"} ${fmt(Math.abs(diff))}${pct!==null?` (${pct.toFixed(1)}%)`:""}.` : `You've spent <span class="highlight-amt">${fmt(cur)}</span> this month. There isn't enough data for a month-to-month comparison yet.`);
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- alerts ----------
+  const ALERTS_KEY = "ledger:alerts:dismissed:v1";
+  let dismissedAlerts = {};
+  try { dismissedAlerts = JSON.parse(localStorage.getItem(ALERTS_KEY) || "{}"); } catch(e) { dismissedAlerts = {}; }
+  function saveDismissedAlerts(){ try{ localStorage.setItem(ALERTS_KEY, JSON.stringify(dismissedAlerts)); }catch(e){} }
+
+  function getLedgerAlerts(){
+    const alerts=[];
+    const today=new Date(); today.setHours(0,0,0,0);
+    const curKey=currentMonthKey(), prevKey=monthKeyOffset(-1);
+    // Alerts are intentionally NOT a second budget view: only notify when a budget is crossed.
+    Object.entries(budgets.Expense||{}).forEach(([cat,limit])=>{
+      const st=budgetStatus(cat); if(!st) return;
+      if(st.spent>st.limit) alerts.push({id:`budget-over:${curKey}:${cat}`,type:"warning",title:`${cat} is over budget`,body:`You've spent ${fmt(st.spent)} against a ${fmt(st.limit)} budget — ${fmt(st.spent-st.limit)} over.`});
+    });
+    // Upcoming recurring payments are useful even when no budget exists.
+    recurringRules.filter(r=>r.active!==false).forEach(r=>{
+      const day=Math.min(31,Math.max(1,Number(r.dayOfMonth)||1));
+      const y=today.getFullYear(), m=today.getMonth();
+      let due=new Date(y,m,day); if(due<today) due=new Date(y,m+1,day);
+      const diff=Math.round((due-today)/86400000);
+      if(diff>=0 && diff<=3){
+        const label=diff===0?"due today":diff===1?"due tomorrow":`due in ${diff} days`;
+        alerts.push({id:`recurring:${r.id}:${due.getFullYear()}-${due.getMonth()+1}`,type:"info",title:`${r.name||r.merchant||r.category} ${label}`,body:`${fmt(r.amount)} · ${r.category||"Recurring payment"}`});
+      }
+    });
+    // Spending pace alert is independent of budgets.
+    const cur=monthExpenseTotal(curKey), prev=monthExpenseTotal(prevKey);
+    const now=new Date(); const daysElapsed=now.getDate();
+    if(prev>0 && daysElapsed>1){
+      const prevDays=new Date(now.getFullYear(),now.getMonth(),0).getDate();
+      const curDaily=cur/daysElapsed, prevDaily=prev/prevDays;
+      if(prevDaily>0 && curDaily>=prevDaily*1.2){
+        const pct=((curDaily/prevDaily)-1)*100;
+        alerts.push({id:`pace:${curKey}`,type:"warning",title:"Spending pace is higher than usual",body:`You're spending about ${pct.toFixed(0)}% faster per day than last month.`});
+      }
+    }
+    return alerts;
+  }
+
+  function renderAlertsManager(){
+    const section=document.createElement("div"); section.className="summary-section";
+    section.innerHTML=`<h2>🔔 Alerts</h2><div class="empty-note" id="alerts-empty">Checking for anything that needs your attention…</div><div id="alerts-list"></div>`;
+    summaryContent.appendChild(section);
+    const list=section.querySelector("#alerts-list"), empty=section.querySelector("#alerts-empty");
+    const alerts=getLedgerAlerts().filter(a=>!dismissedAlerts[a.id]);
+    empty.style.display=alerts.length?"none":"block";
+    list.innerHTML=alerts.map(a=>`<div class="memory-row" style="align-items:flex-start;gap:12px"><div class="memory-name"><b>${escapeHtml(a.title)}</b><div class="empty-note" style="margin-top:4px">${escapeHtml(a.body)}</div></div><button class="memory-edit alert-dismiss" data-id="${escapeHtml(a.id)}">Dismiss</button></div>`).join("");
+    list.querySelectorAll(".alert-dismiss").forEach(btn=>btn.onclick=()=>{dismissedAlerts[btn.dataset.id]=Date.now();saveDismissedAlerts();renderSummary();});
+  }
+
+  function handleAlertQuery(text){
+    const lower=normalizeQuickText(text).toLowerCase();
+    if(/^(?:show|view|check) alerts?$/.test(lower) || /^what should i watch\??$/.test(lower)){
+      const alerts=getLedgerAlerts().filter(a=>!dismissedAlerts[a.id]);
+      switchView("summary");
+      addBotMessage(alerts.length ? alerts.map(a=>`<b>${escapeHtml(a.title)}</b> · ${escapeHtml(a.body)}`).join("<br>") : "Nothing needs your attention right now.");
+      return true;
+    }
+    if(/^(?:any|are there any) upcoming (?:payments|recurring payments)\??$/.test(lower) || /^what recurring payments are coming up\??$/.test(lower)){
+      const upcoming=getLedgerAlerts().filter(a=>a.id.startsWith("recurring:") && !dismissedAlerts[a.id]);
+      addBotMessage(upcoming.length ? upcoming.map(a=>`<b>${escapeHtml(a.title)}</b> · ${escapeHtml(a.body)}`).join("<br>") : "No recurring payments are due within the next 3 days.");
+      return true;
+    }
+    if(/^am i spending more than usual\??$/.test(lower)){
+      const pace=getLedgerAlerts().find(a=>a.id.startsWith("pace:") && !dismissedAlerts[a.id]);
+      addBotMessage(pace ? `<b>${escapeHtml(pace.title)}</b> — ${escapeHtml(pace.body)}` : "Your current spending pace isn't unusually high compared with last month.");
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- summary view ----------
+
+  // ---------- smart insights ----------
+  function getInsightDayTotals(key=currentMonthKey()){
+    const totals={};
+    transactions.filter(t=>t.type==="Expense" && txnDateKey(t).startsWith(key))
+      .forEach(t=>{const d=txnDateKey(t); totals[d]=(totals[d]||0)+Number(t.amount||0);});
+    return totals;
+  }
+
+  function renderInsightsManager(){
+    const section=document.createElement("div");
+    section.className="summary-section";
+    section.innerHTML=`<h2>Smart Insights</h2><div id="insights-grid" class="insights-grid"></div>`;
+    summaryContent.appendChild(section);
+    const grid=section.querySelector("#insights-grid");
+
+    const mt=currentMonthTransactions();
+    const exp=mt.filter(t=>t.type==="Expense");
+    const inc=mt.filter(t=>t.type==="Income");
+    const spent=exp.reduce((s,t)=>s+Number(t.amount||0),0);
+    const income=inc.reduce((s,t)=>s+Number(t.amount||0),0);
+    const cats={};
+    exp.forEach(t=>{const c=String(t.category||"Uncategorized");cats[c]=(cats[c]||0)+Number(t.amount||0);});
+    const days=getInsightDayTotals();
+    const topCat=Object.entries(cats).sort((a,b)=>b[1]-a[1])[0];
+    const topTxn=[...exp].sort((a,b)=>Number(b.amount||0)-Number(a.amount||0))[0];
+    const topDay=Object.entries(days).sort((a,b)=>b[1]-a[1])[0];
+    const avg=exp.length?spent/exp.length:0;
+    const prev=monthExpenseTotal(monthKeyOffset(-1));
+    const change=prev?((spent-prev)/prev*100):null;
+    const rate=income?((income-spent)/income*100):null;
+    const over=Object.entries(budgets.Expense||{}).filter(([,v])=>Number(v)>0)
+      .map(([c])=>[c,budgetStatus(c)]).filter(([,s])=>s&&s.spent>s.limit);
+
+    const card=(label,value,note="")=>`<div class="insight-card"><div class="insight-label">${label}</div><div class="insight-value">${value}</div>${note?`<div class="insight-note">${note}</div>`:""}</div>`;
+    grid.innerHTML=[
+      card("Average expense",fmt(avg),`${exp.length} expense${exp.length===1?"":"s"} this month`),
+      card("Largest expense",topTxn?fmt(topTxn.amount):"—",topTxn?escapeHtml(topTxn.merchant||topTxn.category||"Uncategorized"):"No expenses yet"),
+      card("Top category",topCat?escapeHtml(topCat[0]):"—",topCat?fmt(topCat[1]):"No expenses yet"),
+      card("Highest-spend day",topDay?fmt(topDay[1]):"—",topDay?escapeHtml(topDay[0]):"No expenses yet"),
+      card("Savings rate",rate!==null?`${rate.toFixed(1)}%`:"—",income?`${fmt(income-spent)} net this month`:"Add income to calculate"),
+      card("vs last month",change!==null?`${change>=0?"+":""}${change.toFixed(1)}%`:"—",prev?`${change>=0?"Higher":"Lower"} spending`:"No previous-month spending")
+    ].join("");
+  }
+
+  function handleInsightQuery(text){
+    const lower=normalizeQuickText(text).toLowerCase();
+
+    if(/^(?:what|which) (?:was|is) my (?:biggest|largest) expense(?: this month)?\??$/.test(lower) ||
+       /^what did i spend the most on(?: this month)?\??$/.test(lower)){
+      const exp=currentMonthTransactions().filter(t=>t.type==="Expense").sort((a,b)=>Number(b.amount||0)-Number(a.amount||0));
+      addBotMessage(exp.length?`Your biggest expense this month was <b>${escapeHtml(exp[0].merchant||exp[0].category||"Uncategorized")}</b> at <span class="highlight-amt">${fmt(exp[0].amount)}</span>.`:`No expenses recorded in ${monthName()} yet.`);
+      return true;
+    }
+
+    if(/^(?:what is|what's) my average expense(?: this month)?\??$/.test(lower)){
+      const exp=currentMonthTransactions().filter(t=>t.type==="Expense");
+      const total=exp.reduce((s,t)=>s+Number(t.amount||0),0);
+      addBotMessage(exp.length?`Your average expense this month is <span class="highlight-amt">${fmt(total/exp.length)}</span>.`:`No expenses recorded in ${monthName()} yet.`);
+      return true;
+    }
+
+    if(/^(?:what is|what's) my savings rate(?: this month)?\??$/.test(lower) ||
+       /^how much am i saving(?: this month)?\??$/.test(lower)){
+      const mt=currentMonthTransactions();
+      const income=mt.filter(t=>t.type==="Income").reduce((s,t)=>s+Number(t.amount||0),0);
+      const spent=mt.filter(t=>t.type==="Expense").reduce((s,t)=>s+Number(t.amount||0),0);
+      if(!income) addBotMessage("I need at least one income transaction this month to calculate your savings rate.");
+      else { const rate=(income-spent)/income*100; addBotMessage(`Your savings rate this month is <span class="highlight-amt">${rate.toFixed(1)}%</span>. You've kept <span class="highlight-amt">${fmt(income-spent)}</span> from ${fmt(income)} of income.`); }
+      return true;
+    }
+
+    if(/^(?:what|which) day did i spend the most(?: this month)?\??$/.test(lower) ||
+       /^what was my highest spending day(?: this month)?\??$/.test(lower)){
+      const top=Object.entries(getInsightDayTotals()).sort((a,b)=>b[1]-a[1])[0];
+      addBotMessage(top?`Your highest-spending day this month was <b>${escapeHtml(top[0])}</b> at <span class="highlight-amt">${fmt(top[1])}</span>.`:`No expenses recorded in ${monthName()} yet.`);
+      return true;
+    }
+
+    if(/^(?:show|view) smart insights?$/.test(lower)){
+      switchView("summary");
+      addBotMessage("I've opened Summary. Scroll to <b>Smart Insights</b> for the latest spending signals.");
+      return true;
+    }
+    return false;
+  }
+
+  function renderSummary(){
+    const income = getIncome();
+    const expense = getExpense();
+    const net = income - expense;
+
+    const monthTx = currentMonthTransactions();
+    const monthIncome = monthTx.filter(t=>t.type==="Income").reduce((s,t)=>s+t.amount,0);
+    const monthExpense = monthTx.filter(t=>t.type==="Expense").reduce((s,t)=>s+t.amount,0);
+    const monthNet = monthIncome - monthExpense;
+    const monthCats = {};
+    monthTx.filter(t=>t.type==="Expense").forEach(t=>{ monthCats[t.category]=(monthCats[t.category]||0)+t.amount; });
+    const monthCatEntries=Object.entries(monthCats).sort((a,b)=>b[1]-a[1]);
+    const monthPayments={};
+    monthTx.filter(t=>t.type==="Expense").forEach(t=>{ monthPayments[t.payment]=(monthPayments[t.payment]||0)+t.amount; });
+    const topPayment=Object.entries(monthPayments).sort((a,b)=>b[1]-a[1])[0];
+    const monthMiniHtml = monthCatEntries.length ? `<div class="mini-list">${formatCategoryList(monthCats)}</div>` : `<div class="empty-note">No expenses this month yet.</div>`;
+
+    const catTotals = {};
+    transactions.filter(t=>t.type==="Expense").forEach(t=>{
+      catTotals[t.category] = (catTotals[t.category]||0) + t.amount;
+    });
+    const catEntries = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    const maxCat = catEntries.length ? catEntries[0][1] : 0;
+
+    let html = `
+      <div class="summary-section">
+        <h2>This month · ${escapeHtml(monthName())}</h2>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="v income">${fmt(monthIncome)}</div><div class="l">income</div></div>
+          <div class="stat-box"><div class="v expense">${fmt(monthExpense)}</div><div class="l">spent</div></div>
+          <div class="stat-box"><div class="v">${fmt(monthNet)}</div><div class="l">net</div></div>
+        </div>
+        <div class="dashboard-mini">
+          <div><span class="empty-note">Top category</span><br><b>${monthCatEntries.length?escapeHtml(monthCatEntries[0][0]):"—"}</b>${monthCatEntries.length?` · ${fmt(monthCatEntries[0][1])}`:""}</div>
+          <div><span class="empty-note">Top payment</span><br><b>${topPayment?escapeHtml(topPayment[0]):"—"}</b>${topPayment?` · ${fmt(topPayment[1])}`:""}</div>
+        </div>
+        ${monthMiniHtml}
+      </div>
+      <div class="summary-section">
+        <h2>All-time overview</h2>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
+          <div class="stat-box"><div class="v expense">${fmt(expense)}</div><div class="l">expenses</div></div>
+          <div class="stat-box"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
+        </div>
+      </div>
+      <div class="summary-section">
+        <h2>Spending by category</h2>
+        ${catEntries.length ? catEntries.map(([cat,amt]) => `
+          <div class="cat-row">
+            <span class="cat-name">${cat}</span>
+            <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${maxCat ? (amt/maxCat*100) : 0}%"></span></span>
+            <span class="cat-amt num">${fmt(amt)}</span>
+          </div>
+        `).join("") : `<div class="empty-note">No expenses logged yet.</div>`}
+      </div>
+      <div class="summary-section">
+        <h2>Monthly spending trend</h2>
+        <div class="trend-list">${[-5,-4,-3,-2,-1,0].map(off=>{const k=monthKeyOffset(off),amt=monthExpenseTotal(k);return `<div class="trend-row"><span class="trend-label">${escapeHtml(monthLabelFromKey(k))}</span><span class="trend-track"><span class="trend-fill" style="width:${monthExpenseTotal(currentMonthKey())?Math.min(100,amt/Math.max(1,...[-5,-4,-3,-2,-1,0].map(o=>monthExpenseTotal(monthKeyOffset(o))))*100):0}%"></span></span><span class="trend-amt num">${fmt(amt)}</span></div>`;}).join("")}</div>
+      </div>
+    `;
+    summaryContent.innerHTML = html;
+    addMerchantMemoryManager();
+    addRecurringManager();
+    addBudgetManager();
+    addTransactionSearchManager();
+    renderInsightsManager();
+    renderAlertsManager();
+    addCategoryManager();
+    addDataTools();
+
+  }
+
+  function openTransactionEditor(txnId, renderList){
+    const txn=transactions.find(t=>t.id===txnId);
+    if(!txn) return;
+    const existing=document.querySelector(`.txn-edit-panel[data-id="${CSS.escape(String(txnId))}"]`);
+    if(existing){ existing.remove(); return; }
+
+    const host=document.querySelector(`.search-result[data-id="${CSS.escape(String(txnId))}"]`);
+    if(!host) return;
+
+    const panel=document.createElement("div");
+    panel.className="txn-edit-panel";
+    panel.dataset.id=txnId;
+    const type=txn.type==="Income"?"Income":"Expense";
+    const cats=getCategories(type);
+    const payments=[...new Set([...PAYMENT_METHODS, ...transactions.map(t=>t.payment).filter(Boolean)])];
+    const currentDate=txnDateKey(txn);
+    panel.innerHTML=`
+      <div class="txn-edit-grid">
+        <label>Type
+          <select class="te-type"><option value="Expense">Expense</option><option value="Income">Income</option></select>
+        </label>
+        <label>Amount
+          <input class="te-amount" inputmode="decimal" value="${escapeHtml(String(txn.amount??""))}">
+        </label>
+        <label>Merchant
+          <input class="te-merchant" value="${escapeHtml(txn.merchant||"")}" placeholder="Merchant">
+        </label>
+        <label>Category
+          <select class="te-category">${cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+        </label>
+        <label>Payment
+          <select class="te-payment"><option value="">—</option>${payments.map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("")}</select>
+        </label>
+        <label>Date
+          <input class="te-date" type="date" value="${escapeHtml(currentDate)}">
+        </label>
+      </div>
+      <label style="display:grid;gap:4px;color:var(--muted);font-size:.8rem;">Note
+        <textarea class="te-note" rows="2" placeholder="Optional note">${escapeHtml(txn.note||"")}</textarea>
+      </label>
+      <div class="txn-edit-actions">
+        <button class="txn-save">Save changes</button>
+        <button class="txn-cancel">Cancel</button>
+      </div>`;
+
+    const typeEl=panel.querySelector(".te-type");
+    const catEl=panel.querySelector(".te-category");
+    const payEl=panel.querySelector(".te-payment");
+    typeEl.value=type;
+    catEl.value=txn.category||"";
+    if(!catEl.value && cats.length) catEl.value=cats[0];
+    payEl.value=txn.payment||"";
+
+    typeEl.addEventListener("change",()=>{
+      const nextCats=getCategories(typeEl.value);
+      catEl.innerHTML=nextCats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+      if(txn.category && nextCats.some(c=>c.toLowerCase()===String(txn.category).toLowerCase())){
+        catEl.value=nextCats.find(c=>c.toLowerCase()===String(txn.category).toLowerCase());
+      } else if(nextCats.length) catEl.value=nextCats[0];
+    });
+
+    panel.querySelector(".txn-cancel").onclick=()=>panel.remove();
+    panel.querySelector(".txn-save").onclick=async()=>{
+      const amount=parseAmount(panel.querySelector(".te-amount").value);
+      const date=panel.querySelector(".te-date").value;
+      if(!amount || amount<=0){ alert("Enter a valid amount."); return; }
+      if(!date){ alert("Choose a date."); return; }
+      const old={...txn};
+      txn.type=typeEl.value;
+      txn.amount=amount;
+      txn.merchant=panel.querySelector(".te-merchant").value.trim().toLowerCase();
+      txn.category=catEl.value;
+      txn.payment=payEl.value || "Other";
+      txn.date=date+"T00:00:00";
+      txn.note=panel.querySelector(".te-note").value.trim();
+      await saveTransactions();
+      if(lastSavedTransactionId===txn.id) lastSavedTransactionId=txn.id;
+      renderBalance();
+      panel.remove();
+      renderList();
+    };
+
+    host.appendChild(panel);
+    panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  function addTransactionSearchManager(){
+    const section=document.createElement("div"); section.className="summary-section";
+    const cats=getCategories("Expense");
+    const payments=[...new Set([...PAYMENT_METHODS, ...transactions.map(t=>t.payment).filter(Boolean)])];
+    section.innerHTML=`
+      <h2>Transactions</h2>
+      <div class="empty-note">Your transaction history and search are one list. Search, filter, edit, or delete any transaction here.</div>
+      <div class="search-controls">
+        <input id="txn-search-term" placeholder="Merchant, category or note">
+        <select id="txn-search-type"><option value="">All types</option><option value="Expense">Expenses</option><option value="Income">Income</option></select>
+        <select id="txn-search-category"><option value="">All categories</option>${cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+        <select id="txn-search-payment"><option value="">All payments</option>${payments.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select>
+        <input id="txn-search-date" type="date" title="Exact date">
+        <input id="txn-search-min" inputmode="decimal" placeholder="Minimum amount">
+        <input id="txn-search-max" inputmode="decimal" placeholder="Maximum amount">
+        <input id="txn-search-month" type="month" title="Month">
+      </div>
+      <div class="search-actions"><button class="data-action" id="txn-search-apply">Search</button><button class="data-action" id="txn-search-clear">Clear</button></div>
+      <div id="txn-search-results" class="search-results"></div>`;
+    summaryContent.appendChild(section);
+    const q=id=>section.querySelector(id);
+    const result=section.querySelector("#txn-search-results");
+
+    function render(){
+      const filters={
+        term:normalizeSearchValue(q("#txn-search-term").value),
+        type:q("#txn-search-type").value,
+        category:normalizeSearchValue(q("#txn-search-category").value),
+        payment:normalizeSearchValue(q("#txn-search-payment").value),
+        date:q("#txn-search-date").value,
+        month:q("#txn-search-month").value,
+        minAmount:q("#txn-search-min").value?parseAmount(q("#txn-search-min").value):null,
+        maxAmount:q("#txn-search-max").value?parseAmount(q("#txn-search-max").value):null
+      };
+      const items=transactions.filter(t=>transactionMatchesSearch(t,filters)).sort((a,b)=>txnDateKey(b).localeCompare(txnDateKey(a)));
+      const total=items.reduce((sum,t)=>sum+Number(t.amount||0),0);
+      result.innerHTML=items.length ? `
+        <div class="empty-note" style="margin-bottom:8px;">Showing <b>${items.length}</b> transaction${items.length===1?"":"s"} · Total <b>${fmt(total)}</b></div>
+        ${items.map(t=>`
+          <div class="search-result" data-id="${escapeHtml(t.id)}">
+            <div class="search-result-main">
+              <div class="search-result-title">${escapeHtml(t.merchant||t.category||"Uncategorized")}</div>
+              <div class="search-result-meta">${escapeHtml(t.category||"Uncategorized")} · ${escapeHtml(t.payment||"—")} · ${escapeHtml(txnDateKey(t))}${t.note?" · "+escapeHtml(t.note):""}</div>
+            </div>
+            <div class="search-result-amt ${t.type.toLowerCase()}">${t.type==="Income"?"+":"-"}${fmt(t.amount)}</div>
+            <button class="txn-edit" data-id="${escapeHtml(t.id)}" title="Edit">Edit</button>
+            <button class="txn-del" data-id="${escapeHtml(t.id)}" title="Delete">✕</button>
+          </div>`).join("")}` : "<div class='empty-note'>No matching transactions.</div>";
+
+      result.querySelectorAll(".txn-edit").forEach(btn=>{
+        btn.onclick=()=>openTransactionEditor(btn.getAttribute("data-id"),render);
+      });
+      result.querySelectorAll(".txn-del").forEach(btn=>{
+        btn.onclick=async()=>{
+          const id=btn.getAttribute("data-id");
+          const txn=transactions.find(t=>t.id===id);
+          if(!txn) return;
+          if(!confirm(`Delete ${txn.merchant||txn.category||"this transaction"} · ${fmt(txn.amount)}?`)) return;
+          transactions=transactions.filter(t=>t.id!==id);
+          if(lastSavedTransactionId===id) lastSavedTransactionId=transactions.length ? transactions[transactions.length-1].id : null;
+          await saveTransactions();
+          renderBalance();
+          render();
+        };
+      });
+    }
+
+    section.querySelector("#txn-search-apply").onclick=render;
+    section.querySelector("#txn-search-clear").onclick=()=>{
+      section.querySelectorAll("input").forEach(i=>i.value="");
+      q("#txn-search-type").value="";
+      q("#txn-search-category").value="";
+      q("#txn-search-payment").value="";
+      render();
+    };
+
+    section.querySelectorAll("input,select").forEach(el=>{
+      el.addEventListener("keydown",e=>{if(e.key==="Enter") render();});
+    });
+    render();
+  }
+
+  // ---------- data tools ----------
+  function getFullBackupObject(){
+    return {
+      app: "Ledger",
+      backupVersion: 2,
+      exportedAt: new Date().toISOString(),
+      transactions: transactions,
+      customCategories: customCategories,
+      merchantMemory: merchantMemory,
+      recurringRules: recurringRules,
+      budgets: budgets
+    };
+  }
+
+  function getBackupText(){
+    return JSON.stringify(getFullBackupObject(), null, 2);
+  }
+
+  async function exportBackup(){
+    const data = getBackupText();
+    const filename = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
+    const file = new File([data], filename, {type:"application/json"});
+
+    // Best option on supported desktop browsers: native Save As dialog.
+    try{
+      if(window.showSaveFilePicker){
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types:[{
+            description:"Ledger Backup",
+            accept:{"application/json":[".json"]}
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        showBackupMessage("Backup saved successfully.");
+        return;
+      }
+    }catch(err){
+      // User cancellation should not be treated as an error.
+      if(err && err.name === "AbortError"){
+        showBackupMessage("Backup save cancelled.");
+        return;
+      }
+      console.warn("Save picker unavailable:", err);
+    }
+
+    // Mobile-friendly share sheet when available.
+    try{
+      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({
+          title:"Ledger Backup",
+          text:"Ledger backup",
+          files:[file]
+        });
+        showBackupMessage("Backup shared/saved successfully.");
+        return;
+      }
+    }catch(err){
+      if(err && err.name === "AbortError"){
+        showBackupMessage("Backup save cancelled.");
+        return;
+      }
+      console.warn("Share failed:", err);
+    }
+
+    // Normal download fallback.
+    try{
+      const blob = new Blob([data], {type:"application/json;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      showBackupMessage("Backup download started. Check your Downloads folder.");
+      return;
+    }catch(err){
+      console.warn("Blob download failed:", err);
+    }
+
+    // Last-resort: keep the working copy-to-clipboard route available.
+    await copyBackup();
+  }
+
+  function showBackupMessage(message){
+    const el = document.getElementById("backup-status");
+    if(el) el.textContent = message;
+  }
+
+  async function copyBackup(){
+    const data = getBackupText();
+    try{
+      await navigator.clipboard.writeText(data);
+      showBackupMessage("Backup copied to clipboard. Paste it into a file named ledger-backup.json.");
+    }catch(err){
+      // Clipboard may be unavailable for local HTML files. Show the backup in
+      // a temporary textarea so the user can manually copy it.
+      const box = document.getElementById("backup-copy-box");
+      if(box){
+        box.value = data;
+        box.style.display = "block";
+        box.focus();
+        box.select();
+        showBackupMessage("Clipboard access is blocked here. The backup text is selected below — copy it manually.");
+      }
+    }
+  }
+
+  function importBackupFile(file){
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try{
+        const parsed = JSON.parse(e.target.result);
+        const imported = Array.isArray(parsed) ? parsed : parsed.transactions;
+        if(!Array.isArray(imported)) throw new Error("Invalid backup");
+
+        const valid = imported.filter(t =>
+          t && t.id && (t.type==="Income" || t.type==="Expense") &&
+          typeof t.amount==="number" && typeof t.category==="string"
+        );
+        if(valid.length !== imported.length) throw new Error("Invalid transaction data");
+
+        transactions = valid;
+
+        if(!Array.isArray(parsed)){
+          if(parsed.customCategories &&
+             Array.isArray(parsed.customCategories.Expense) &&
+             Array.isArray(parsed.customCategories.Income)){
+            customCategories = parsed.customCategories;
+            saveCustomCategories();
+          }
+          if(parsed.merchantMemory &&
+             parsed.merchantMemory.Expense &&
+             parsed.merchantMemory.Income){
+            merchantMemory = parsed.merchantMemory;
+            saveMerchantMemory();
+          }
+          if(parsed.budgets && parsed.budgets.Expense && typeof parsed.budgets.Expense === "object") {
+            budgets = parsed.budgets;
+            saveBudgets();
+          }
+        }
+
+        saveTransactions();
+        renderBalance();
+        renderSummary();
+        addBotMessage(`Imported ${transactions.length} transaction${transactions.length===1?'':'s'} successfully.`);
+      }catch(err){
+        console.error(err);
+        addBotMessage("That backup file isn't valid.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function askForNewCategory(type, afterCreate){
+    addBotMessage(`Type the new ${type.toLowerCase()} category name.`);
+    addInputRow(`e.g. Coffee, Bike Maintenance`, {
+      buttonLabel:"Add",
+      onSubmit:(name)=>{
+        const clean=String(name||"").trim();
+        if(!clean){
+          addBotMessage("Please enter a category name.");
+          askForNewCategory(type, afterCreate);
+          return;
+        }
+        if(addCustomCategory(type, clean)){
+          addBotMessage(`Added <b>${escapeHtml(clean)}</b> to your ${type.toLowerCase()} categories.`);
+          afterCreate(clean);
+        }else{
+          addBotMessage("That category already exists.");
+          afterCreate(null);
+        }
+      }
+    });
+    addBackButton();
+  }
+
+  function addRecurringManager(){
+    const section=document.createElement("div"); section.className="summary-section";
+    const catOptions=getCategories("Expense").map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    section.innerHTML=`
+      <h2>Recurring transactions</h2>
+      <div class="memory-card">
+        <div class="input-row" style="flex-wrap:wrap;">
+          <input id="rr-name" placeholder="Name · e.g. Rent" style="flex:1;min-width:150px;">
+          <input id="rr-amount" placeholder="Amount" inputmode="decimal" style="width:120px;">
+        </div>
+        <div class="input-row" style="flex-wrap:wrap;margin-top:8px;">
+          <select id="rr-category" style="flex:1;min-width:150px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
+          <select id="rr-payment" style="flex:1;min-width:140px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${PAYMENT_METHODS.map(p=>`<option>${escapeHtml(p)}</option>`).join("")}</select>
+          <input id="rr-day" type="number" min="1" max="31" value="1" style="width:80px;" title="Day of month">
+        </div>
+        <div class="input-row" style="margin-top:8px;flex-wrap:wrap;">
+          <input id="rr-start" type="date" value="${todayISO()}" style="flex:1;min-width:160px;">
+          <button class="data-action" id="rr-add">+ Add monthly</button>
+        </div>
+        <div class="empty-note" style="margin-top:8px;">Ledger creates the transaction automatically when the monthly due date arrives. Existing transactions are never changed.</div>
+        <div id="rr-list" style="margin-top:12px;"></div>
+      </div>`;
+    summaryContent.appendChild(section);
+    const list=section.querySelector("#rr-list");
+    function render(){
+      const active=recurringRules.filter(r=>r.active!==false);
+      list.innerHTML=active.length?active.map(r=>`<div class="memory-row"><div class="memory-name"><b>${escapeHtml(r.name||r.merchant||r.category)}</b> → ${fmt(r.amount)} · ${escapeHtml(r.category)} · day ${r.dayOfMonth}</div><button class="memory-edit rr-delete" data-id="${r.id}">Stop</button></div>`).join(""):"<div class='empty-note'>No recurring transactions set up yet.</div>";
+      list.querySelectorAll(".rr-delete").forEach(b=>b.onclick=()=>{ removeRecurringRule(b.dataset.id); render(); });
+    }
+    section.querySelector("#rr-add").onclick=()=>{
+      const name=section.querySelector("#rr-name").value.trim(); const amount=parseFloat(section.querySelector("#rr-amount").value.replace(/,/g,"")); const day=parseInt(section.querySelector("#rr-day").value,10); const category=section.querySelector("#rr-category").value; const payment=section.querySelector("#rr-payment").value; const startDate=section.querySelector("#rr-start").value;
+      if(!name||!amount||amount<=0||!day||day<1||day>31||!startDate){ alert("Please enter a name, amount, valid day, and start date."); return; }
+      addRecurringRule({name,type:"Expense",merchant:name.toLowerCase(),amount,category,payment,dayOfMonth:day,startDate});
+      addBotMessage(`Added recurring <b>${escapeHtml(name)}</b> · ${fmt(amount)} monthly on day ${day}.`);
+    };
+    render();
+  }
+
+  function addBudgetManager(){
+    const section=document.createElement("div"); section.className="summary-section";
+    const catOptions=getCategories("Expense").map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    section.innerHTML=`
+      <h2>Budgets</h2>
+      <div class="memory-card">
+        <div class="input-row" style="flex-wrap:wrap;">
+          <select id="budget-category" style="flex:1;min-width:180px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
+          <input id="budget-amount" placeholder="Monthly limit" inputmode="decimal" style="width:150px;">
+          <button class="data-action" id="budget-add">Set budget</button>
+        </div>
+        <div class="empty-note" style="margin-top:8px;">Budgets reset each calendar month. Transactions are never changed.</div>
+        <div id="budget-list" style="margin-top:12px;"></div>
+      </div>`;
+    summaryContent.appendChild(section);
+    const list=section.querySelector("#budget-list");
+    function render(){
+      const entries=Object.entries(budgets.Expense||{}).filter(([,v])=>Number(v)>0);
+      list.innerHTML=entries.length ? entries.map(([cat,limit])=>{
+        const st=budgetStatus(cat);
+        const over=st.spent>st.limit;
+        return `<div class="memory-row"><div class="memory-name"><b>${escapeHtml(cat)}</b> · ${fmt(st.spent)} / ${fmt(st.limit)}${over?` · <b>over by ${fmt(st.spent-st.limit)}</b>`:` · ${fmt(st.remaining)} left`}</div><button class="memory-edit budget-remove" data-cat="${escapeHtml(cat)}">Remove</button></div>`;
+      }).join("") : "<div class='empty-note'>No budgets set yet.</div>";
+      list.querySelectorAll(".budget-remove").forEach(b=>b.onclick=()=>{ delete budgets.Expense[b.dataset.cat]; saveBudgets(); render(); });
+    }
+    section.querySelector("#budget-add").onclick=()=>{
+      const cat=section.querySelector("#budget-category").value;
+      const amount=parseFloat(section.querySelector("#budget-amount").value.replace(/,/g,""));
+      if(!cat || !amount || amount<=0){ alert("Enter a valid monthly budget."); return; }
+      budgets.Expense[cat]=amount; saveBudgets(); section.querySelector("#budget-amount").value=""; render();
+    };
+    render();
+  }
+
+  function addCategoryManager(){
+    const section=document.createElement("div");
+    section.className="summary-section";
+    section.innerHTML=`
+      <h2>Custom categories</h2>
+      <div class="data-actions">
+        <button class="data-action" id="add-expense-cat">+ Expense Category</button>
+        <button class="data-action" id="add-income-cat">+ Income Category</button>
+      </div>
+      <div class="empty-note" id="custom-cat-list"></div>
+    `;
+    summaryContent.appendChild(section);
+    const list=section.querySelector("#custom-cat-list");
+    function render(){
+      const e=customCategories.Expense.length ? customCategories.Expense.join(" · ") : "No custom expense categories";
+      const i=customCategories.Income.length ? customCategories.Income.join(" · ") : "No custom income categories";
+      list.innerHTML=`<b>Expenses:</b> ${escapeHtml(e)}<br><b>Income:</b> ${escapeHtml(i)}`;
+    }
+    section.querySelector("#add-expense-cat").onclick=()=>{
+      const name=window.prompt("New expense category:");
+      if(name && addCustomCategory("Expense",name)) render();
+    };
+    section.querySelector("#add-income-cat").onclick=()=>{
+      const name=window.prompt("New income category:");
+      if(name && addCustomCategory("Income",name)) render();
+    };
+    render();
+  }
+
+  function finishMerchantEdit(type, merchant, category){
+    merchantMemory[type][merchant.toLowerCase()] = category;
+    trustedMerchantMemory[type][merchant.toLowerCase()] = category;
+    saveMerchantMemory();
+    saveTrustedMerchantMemory();
+    renderSummary();
+    switchView("chat");
+    addBotMessage(`Updated <b>${escapeHtml(merchant)}</b> → <b>${escapeHtml(category)}</b>. I'll use <b>${escapeHtml(category)}</b> for future ${type.toLowerCase()} entries.`);
+    addChoices([
+      {label:"Log transaction", primary:true, onClick:()=>{
+        draft={merchant:merchant, type:type, category:category};
+        flowHistory=[];
+        renderQuickInput();
+      }},
+      {label:"Done", onClick:()=>{
+        addBotMessage("Done. What would you like to log next?");
+        renderQuickInput();
+      }}
+    ]);
+  }
+
+  function editMerchantCategory(type, merchant){
+    const categories = getCategories(type);
+    const current = lookupRememberedCategory(type, merchant);
+
+    // If the edit was opened from Summary, move back to Chat so the editing
+    // conversation remains visible instead of appearing to terminate.
+    switchView("chat");
+    addBotMessage(`Change the category for <b>${escapeHtml(merchant)}</b>. Current category: <b>${escapeHtml(current || "None")}</b>`);
+    addChoices([
+      ...categories.map(category => ({
+        label: category,
+        onClick: () => finishMerchantEdit(type, merchant, category)
+      })),
+      {
+        label: "+ Add category",
+        primary: true,
+        onClick: () => askForNewCategory(type, (name) => {
+          if(name) finishMerchantEdit(type, merchant, name);
+        })
+      }
+    ]);
+    addBackButton();
+  }
+
+  function addMerchantMemoryManager(){
+    const section=document.createElement("div");
+    section.className="summary-section";
+    section.innerHTML=`<h2>Learned categories</h2><div class="memory-card"><div class="empty-note" id="merchant-memory-list"></div></div>`;
+    summaryContent.appendChild(section);
+    const list=section.querySelector("#merchant-memory-list");
+
+    const rows=[];
+    Object.entries(trustedMerchantMemory.Expense).forEach(([m,c])=>{
+      rows.push(`
+        <div class="memory-row">
+          <div class="memory-name"><b>${escapeHtml(m)}</b> → ${escapeHtml(c)} <span class="empty-note">(expense)</span></div>
+          <button class="memory-edit" data-type="Expense" data-merchant="${escapeHtml(m)}">Edit</button>
+        </div>`);
+    });
+    Object.entries(trustedMerchantMemory.Income).forEach(([m,c])=>{
+      rows.push(`
+        <div class="memory-row">
+          <div class="memory-name"><b>${escapeHtml(m)}</b> → ${escapeHtml(c)} <span class="empty-note">(income)</span></div>
+          <button class="memory-edit" data-type="Income" data-merchant="${escapeHtml(m)}">Edit</button>
+        </div>`);
+    });
+
+    list.innerHTML=rows.length ? rows.join("") : "No learned merchant mappings yet. Use \"Yes, remember\" after a transaction and the mapping will appear here.";
+
+    list.querySelectorAll(".memory-edit").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        editMerchantCategory(btn.dataset.type, btn.dataset.merchant);
+      });
+    });
+  }
+
+
+  function importBackupText(text){
+    try{
+      const parsed = JSON.parse(String(text || "").trim());
+      const imported = Array.isArray(parsed) ? parsed : parsed.transactions;
+      if(!Array.isArray(imported)) throw new Error("Invalid backup");
+
+      const valid = imported.filter(t =>
+        t && t.id && (t.type==="Income" || t.type==="Expense") &&
+        typeof t.amount==="number" && typeof t.category==="string"
+      );
+      if(valid.length !== imported.length) throw new Error("Invalid transaction data");
+
+      transactions = valid;
+
+      if(!Array.isArray(parsed)){
+        if(parsed.customCategories &&
+           Array.isArray(parsed.customCategories.Expense) &&
+           Array.isArray(parsed.customCategories.Income)){
+          customCategories = parsed.customCategories;
+          saveCustomCategories();
+        }
+        if(parsed.merchantMemory &&
+           parsed.merchantMemory.Expense &&
+           parsed.merchantMemory.Income){
+          merchantMemory = parsed.merchantMemory;
+          saveMerchantMemory();
+        }
+        if(Array.isArray(parsed.recurringRules)){
+          recurringRules = parsed.recurringRules;
+          saveRecurringRules();
+        }
+      }
+
+      saveTransactions();
+      renderBalance();
+      renderSummary();
+      addBotMessage(`Restored ${transactions.length} transaction${transactions.length===1?'':'s'} plus saved categories and learned merchants.`);
+      return true;
+    }catch(err){
+      console.error(err);
+      addBotMessage("I couldn't read that backup text. Make sure you pasted the complete JSON backup.");
+      return false;
+    }
+  }
+
+  function addDataTools(){
+    const section = document.createElement("div");
+    section.className = "summary-section";
+    section.innerHTML = `
+      <h2>Data</h2>
+      <div class="data-actions">
+        <button type="button" class="data-action" id="export-backup">Export Backup</button>
+        <button type="button" class="data-action" id="copy-backup">Copy Backup</button>
+        <button type="button" class="data-action" id="import-backup">Import Backup</button>
+        <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
+      </div>
+      <div id="backup-status" class="empty-note" style="margin-top:8px;"></div>
+      <div style="margin-top:10px;">
+        <button type="button" class="data-action" id="paste-backup-toggle">Restore from Backup Text</button>
+        <textarea id="paste-backup-box" placeholder="Paste a Ledger JSON backup here..." style="display:none;width:100%;min-height:150px;margin-top:8px;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-family:monospace;font-size:12px;"></textarea>
+        <button type="button" class="data-action" id="paste-backup-restore" style="display:none;margin-top:8px;">Restore Pasted Backup</button>
+      </div>
+    `;
+    summaryContent.appendChild(section);
+
+    section.querySelector("#export-backup").addEventListener("click", e=>{
+      e.preventDefault(); e.stopPropagation(); exportBackup();
+    });
+    section.querySelector("#copy-backup").addEventListener("click", e=>{
+      e.preventDefault(); e.stopPropagation(); copyBackup();
+    });
+    section.querySelector("#import-backup").addEventListener("click", e=>{
+      e.preventDefault(); e.stopPropagation(); section.querySelector("#backup-file").click();
+    });
+    section.querySelector("#backup-file").addEventListener("change", ()=>{
+      importBackupFile(section.querySelector("#backup-file").files[0]);
+      section.querySelector("#backup-file").value="";
+    });
+
+    const toggle=section.querySelector("#paste-backup-toggle");
+    const box=section.querySelector("#paste-backup-box");
+    const restore=section.querySelector("#paste-backup-restore");
+    toggle.addEventListener("click", ()=>{
+      const show=box.style.display==="none";
+      box.style.display=show?"block":"none";
+      restore.style.display=show?"inline-block":"none";
+      if(show) box.focus();
+    });
+    restore.addEventListener("click", ()=>{
+      if(importBackupText(box.value)) box.value="";
+    });
+  }
+
+  // ---------- view switching ----------
+  function switchView(view){
+    if(view === "chat"){
+      tabChat.classList.add("active");
+      tabSummary.classList.remove("active");
+      chatViewEl.style.display = "flex";
+      summaryViewEl.style.display = "none";
+
+      // Returning from Summary must never leave Chat with only a disabled
+      // command box. Navigation is not the end of the conversation. If there
+      // is no active command input, provide a fresh one while preserving the
+      // existing chat history and draft state.
+      const activeInput = chatLog.querySelector(".input-row input:not(:disabled)");
+      if(!activeInput){
+        renderQuickInput();
+      }
+    } else {
+      tabSummary.classList.add("active");
+      tabChat.classList.remove("active");
+      chatViewEl.style.display = "none";
+      summaryViewEl.style.display = "block";
+      renderSummary();
+    }
+  }
+  tabChat.addEventListener("click", () => switchView("chat"));
+  tabSummary.addEventListener("click", () => switchView("summary"));
+
+  // ---------- PWA / phone experience ----------
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById("install-btn");
+  const offlineBadge = document.getElementById("offline-badge");
+
+  function updateOnlineStatus(){
+    if(!navigator.onLine) offlineBadge.classList.add("show");
+    else offlineBadge.classList.remove("show");
+  }
+  window.addEventListener("online", updateOnlineStatus);
+  window.addEventListener("offline", updateOnlineStatus);
+  updateOnlineStatus();
+
+  window.addEventListener("beforeinstallprompt", (event)=>{
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installBtn.classList.add("show");
+  });
+
+  installBtn.addEventListener("click", async ()=>{
+    if(!deferredInstallPrompt){
+      addBotMessage("To install Ledger, open this app from a supported browser over HTTPS (or localhost). If you're opening the HTML directly as a file, installation isn't available yet.");
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    try { await deferredInstallPrompt.userChoice; } catch(e) {}
+    deferredInstallPrompt = null;
+    installBtn.classList.remove("show");
+  });
+
+  window.addEventListener("appinstalled", ()=>{
+    deferredInstallPrompt = null;
+    installBtn.classList.remove("show");
+  });
+
+  // ---------- init ----------
+  async function init(){
+    addBotMessage("Loading your ledger…");
+    const hadConsolidatedState = loadAppState();
+    loadTrustedMerchantMemory();
+    loadRecurringRules();
+    loadBudgets();
+    ensureRecurringTransactions();
+
+    // One-time cleanup of the specific bad legacy rule. Do this after all
+    // state sources have been loaded so an older backup cannot reintroduce it.
+    // Remove the bad legacy tea mapping regardless of what category it contains.
+    // The user must explicitly choose a category before tea can be learned again.
+    ["tea", "tea paytm", "keyboard"].forEach(k=>{
+      if (merchantMemory.Expense?.[k]) delete merchantMemory.Expense[k];
+      if (trustedMerchantMemory.Expense?.[k]) delete trustedMerchantMemory.Expense[k];
+    });
+    try { localStorage.setItem(MERCHANT_MEMORY_KEY, JSON.stringify(merchantMemory)); } catch(e) {}
+    saveTrustedMerchantMemory();
+    try { saveAppState(); } catch(e) {}
+
+    if(!hadConsolidatedState) loadTransactions();
+    else storageReady = true;
+    saveAppState();
+    chatLog.innerHTML = "";
+    renderBalance();
+
+    if(transactions.length){
+      addBotMessage(`Welcome back. You've logged ${transactions.length} transaction${transactions.length===1?'':'s'} so far.`);
+    } else {
+      addBotMessage("Hi, I'm your ledger. Let's log your first transaction.");
+    }
+    startFlow();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
