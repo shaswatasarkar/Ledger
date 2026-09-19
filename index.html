@@ -491,6 +491,34 @@
     -webkit-overflow-scrolling: touch;
     padding: 22px 20px 28px 20px;
   }
+  .summary-subnav{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-pill);
+    padding: 4px;
+  }
+  .subnav-btn{
+    flex:1;
+    background: transparent;
+    border:none;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 6px;
+    border-radius: var(--radius-pill);
+    cursor:pointer;
+    transition: background .15s, color .15s;
+  }
+  .subnav-btn:hover{ color: var(--text); }
+  .subnav-btn.active{
+    background: var(--chip-hover);
+    color: var(--text);
+  }
+  .summary-panel{ min-width:0; }
   .summary-section{ margin-bottom: 26px; }
   .summary-section h2{
     font-size: 12px;
@@ -658,6 +686,7 @@
     .stat-box .v{ font-size: 14.5px; }
     .cat-row .cat-name{ width: 92px; }
     .nav-btn{ font-size: 10.5px; }
+    .subnav-btn{ font-size: 12.5px; padding: 8px 4px; }
   }
   @media (display-mode: standalone){
     header{ padding-top: max(14px, env(safe-area-inset-top)); }
@@ -701,11 +730,6 @@
     background: var(--red-soft);
     border-color: rgba(226,102,95,0.3);
   }
-
-  .dashboard-mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-  .dashboard-mini>div,.mini-list{padding:12px 13px;border:1px solid var(--line-soft);border-radius:var(--radius-md);background:var(--panel)}
-  .mini-list{margin-top:10px;line-height:1.9}
-  @media (max-width:600px){.dashboard-mini{grid-template-columns:1fr}}
 
   .trend-list{margin-top:10px;display:flex;flex-direction:column;gap:10px}
   .trend-row{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;font-size:13px}
@@ -995,6 +1019,7 @@
 
   const chatLog = document.getElementById("chat-log");
   const summaryContent = document.getElementById("summary-content");
+  let activeSummaryTab = "overview";
   const headerBalance = document.getElementById("header-balance");
   const tabChat = document.getElementById("tab-chat");
   const tabSummary = document.getElementById("tab-summary");
@@ -2542,10 +2567,10 @@
     return alerts;
   }
 
-  function renderAlertsManager(){
+  function renderAlertsManager(container){
     const section=document.createElement("div"); section.className="summary-section";
     section.innerHTML=`<h2>🔔 Alerts</h2><div class="empty-note" id="alerts-empty">Checking for anything that needs your attention…</div><div id="alerts-list"></div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const list=section.querySelector("#alerts-list"), empty=section.querySelector("#alerts-empty");
     const alerts=getLedgerAlerts().filter(a=>!dismissedAlerts[a.id]);
     empty.style.display=alerts.length?"none":"block";
@@ -2584,11 +2609,11 @@
     return totals;
   }
 
-  function renderInsightsManager(){
+  function renderInsightsManager(container){
     const section=document.createElement("div");
     section.className="summary-section";
     section.innerHTML=`<h2>Smart Insights</h2><div id="insights-grid" class="insights-grid"></div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const grid=section.querySelector("#insights-grid");
 
     const mt=currentMonthTransactions();
@@ -2688,10 +2713,6 @@
     const monthCats = {};
     monthTx.filter(t=>t.type==="Expense").forEach(t=>{ monthCats[t.category]=(monthCats[t.category]||0)+t.amount; });
     const monthCatEntries=Object.entries(monthCats).sort((a,b)=>b[1]-a[1]);
-    const monthPayments={};
-    monthTx.filter(t=>t.type==="Expense").forEach(t=>{ monthPayments[t.payment]=(monthPayments[t.payment]||0)+t.amount; });
-    const topPayment=Object.entries(monthPayments).sort((a,b)=>b[1]-a[1])[0];
-    const monthMiniHtml = monthCatEntries.length ? `<div class="mini-list">${formatCategoryList(monthCats)}</div>` : `<div class="empty-note">No expenses this month yet.</div>`;
 
     const catTotals = {};
     transactions.filter(t=>t.type==="Expense").forEach(t=>{
@@ -2704,75 +2725,105 @@
     const recent = [...transactions].reverse().slice(0,6);
 
     let html = `
-      <div class="summary-section">
-        <h2>This month · ${escapeHtml(monthName())}</h2>
-        <div class="stat-grid">
-          <div class="stat-box"><div class="v income">${fmt(monthIncome)}</div><div class="l">income</div></div>
-          <div class="stat-box"><div class="v expense">${fmt(monthExpense)}</div><div class="l">spent</div></div>
-          <div class="stat-box"><div class="v">${fmt(monthNet)}</div><div class="l">net</div></div>
-        </div>
-        <div class="insight-banner ${insight.tone}">${insight.text}</div>
-        <div class="dashboard-mini">
-          <div><span class="empty-note">Top category</span><br><b>${monthCatEntries.length?escapeHtml(monthCatEntries[0][0]):"—"}</b>${monthCatEntries.length?` · ${fmt(monthCatEntries[0][1])}`:""}</div>
-          <div><span class="empty-note">Top payment</span><br><b>${topPayment?escapeHtml(topPayment[0]):"—"}</b>${topPayment?` · ${fmt(topPayment[1])}`:""}</div>
-        </div>
-        ${monthMiniHtml}
+      <div class="summary-subnav">
+        <button type="button" class="subnav-btn" data-tab="overview">Overview</button>
+        <button type="button" class="subnav-btn" data-tab="reports">Reports</button>
+        <button type="button" class="subnav-btn" data-tab="manage">Manage</button>
       </div>
-      <div class="summary-section">
-        <h2>Recent transactions</h2>
-        ${recent.length ? recent.map(t=>`
-          <div class="txn-item">
-            <div class="txn-left">
-              <span class="txn-dot ${t.type==="Income"?"income":""}"></span>
-              <div class="txn-main">
-                <span class="txn-cat">${escapeHtml(t.merchant||t.category||"Uncategorized")}</span>
-                <span class="txn-meta">${escapeHtml(t.category||"Uncategorized")} · ${escapeHtml(formatDisplayDate(txnDateKey(t)))}</span>
+
+      <div class="summary-panel" id="summary-tab-overview">
+        <div class="summary-section">
+          <h2>This month · ${escapeHtml(monthName())}</h2>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="v income">${fmt(monthIncome)}</div><div class="l">income</div></div>
+            <div class="stat-box"><div class="v expense">${fmt(monthExpense)}</div><div class="l">spent</div></div>
+            <div class="stat-box"><div class="v">${fmt(monthNet)}</div><div class="l">net</div></div>
+          </div>
+          <div class="insight-banner ${insight.tone}">${insight.text}</div>
+        </div>
+        <div class="summary-section">
+          <h2>Recent transactions</h2>
+          ${recent.length ? recent.map(t=>`
+            <div class="txn-item">
+              <div class="txn-left">
+                <span class="txn-dot ${t.type==="Income"?"income":""}"></span>
+                <div class="txn-main">
+                  <span class="txn-cat">${escapeHtml(t.merchant||t.category||"Uncategorized")}</span>
+                  <span class="txn-meta">${escapeHtml(t.category||"Uncategorized")} · ${escapeHtml(formatDisplayDate(txnDateKey(t)))}</span>
+                </div>
               </div>
+              <span class="txn-amt ${t.type==="Income"?"income":"expense"}">${t.type==="Income"?"+":"-"}${fmt(t.amount)}</span>
             </div>
-            <span class="txn-amt ${t.type==="Income"?"income":"expense"}">${t.type==="Income"?"+":"-"}${fmt(t.amount)}</span>
-          </div>
-        `).join("") : `<div class="empty-note">No transactions yet — try "chips 20" or "salary 30000" in Chat.</div>`}
-        ${transactions.length>6 ? `<button type="button" class="see-all-link" id="see-all-transactions">See all transactions →</button>` : ""}
-      </div>
-      <div class="summary-section">
-        <h2>All-time overview</h2>
-        <div class="stat-grid">
-          <div class="stat-box"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
-          <div class="stat-box"><div class="v expense">${fmt(expense)}</div><div class="l">expenses</div></div>
-          <div class="stat-box"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
+          `).join("") : `<div class="empty-note">No transactions yet — try "chips 20" or "salary 30000" in Chat.</div>`}
+          ${transactions.length>6 ? `<button type="button" class="see-all-link" id="see-all-transactions">See all transactions →</button>` : ""}
+        </div>
+        <div class="summary-section">
+          <h2>Spending by category</h2>
+          ${catEntries.length ? catEntries.map(([cat,amt]) => `
+            <div class="cat-row">
+              <span class="cat-name">${cat}</span>
+              <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${maxCat ? (amt/maxCat*100) : 0}%"></span></span>
+              <span class="cat-amt num">${fmt(amt)}</span>
+            </div>
+          `).join("") : `<div class="empty-note">No expenses logged yet.</div>`}
         </div>
       </div>
-      <div class="summary-section">
-        <h2>Spending by category</h2>
-        ${catEntries.length ? catEntries.map(([cat,amt]) => `
-          <div class="cat-row">
-            <span class="cat-name">${cat}</span>
-            <span class="cat-bar-track"><span class="cat-bar-fill" style="width:${maxCat ? (amt/maxCat*100) : 0}%"></span></span>
-            <span class="cat-amt num">${fmt(amt)}</span>
+
+      <div class="summary-panel" id="summary-tab-reports" style="display:none;">
+        <div class="summary-section">
+          <h2>All-time overview</h2>
+          <div class="stat-grid">
+            <div class="stat-box"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
+            <div class="stat-box"><div class="v expense">${fmt(expense)}</div><div class="l">expenses</div></div>
+            <div class="stat-box"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
           </div>
-        `).join("") : `<div class="empty-note">No expenses logged yet.</div>`}
+        </div>
+        <div class="summary-section">
+          <h2>Monthly spending trend</h2>
+          <div class="trend-list">${[-5,-4,-3,-2,-1,0].map(off=>{const k=monthKeyOffset(off),amt=monthExpenseTotal(k);return `<div class="trend-row"><span class="trend-label">${escapeHtml(monthLabelFromKey(k))}</span><span class="trend-track"><span class="trend-fill" style="width:${monthExpenseTotal(currentMonthKey())?Math.min(100,amt/Math.max(1,...[-5,-4,-3,-2,-1,0].map(o=>monthExpenseTotal(monthKeyOffset(o))))*100):0}%"></span></span><span class="trend-amt num">${fmt(amt)}</span></div>`;}).join("")}</div>
+        </div>
       </div>
-      <div class="summary-section">
-        <h2>Monthly spending trend</h2>
-        <div class="trend-list">${[-5,-4,-3,-2,-1,0].map(off=>{const k=monthKeyOffset(off),amt=monthExpenseTotal(k);return `<div class="trend-row"><span class="trend-label">${escapeHtml(monthLabelFromKey(k))}</span><span class="trend-track"><span class="trend-fill" style="width:${monthExpenseTotal(currentMonthKey())?Math.min(100,amt/Math.max(1,...[-5,-4,-3,-2,-1,0].map(o=>monthExpenseTotal(monthKeyOffset(o))))*100):0}%"></span></span><span class="trend-amt num">${fmt(amt)}</span></div>`;}).join("")}</div>
-      </div>
+
+      <div class="summary-panel" id="summary-tab-manage" style="display:none;"></div>
     `;
     summaryContent.innerHTML = html;
-    addMerchantMemoryManager();
-    addRecurringManager();
-    addBudgetManager();
-    addTransactionSearchManager();
-    renderInsightsManager();
-    renderAlertsManager();
-    addCategoryManager();
-    addDataTools();
+
+    const reportsPanel = document.getElementById("summary-tab-reports");
+    const managePanel = document.getElementById("summary-tab-manage");
+
+    addTransactionSearchManager(reportsPanel);
+    renderInsightsManager(reportsPanel);
+    renderAlertsManager(reportsPanel);
+
+    addMerchantMemoryManager(managePanel);
+    addRecurringManager(managePanel);
+    addBudgetManager(managePanel);
+    addCategoryManager(managePanel);
+    addDataTools(managePanel);
 
     const seeAllBtn = document.getElementById("see-all-transactions");
     if(seeAllBtn){
       seeAllBtn.addEventListener("click", ()=>{
+        switchSummaryTab("reports");
         document.getElementById("txn-search-section")?.scrollIntoView({behavior:"smooth", block:"start"});
       });
     }
+
+    document.querySelectorAll(".subnav-btn").forEach(btn=>{
+      btn.addEventListener("click", ()=> switchSummaryTab(btn.dataset.tab));
+    });
+    switchSummaryTab(activeSummaryTab);
+  }
+
+  function switchSummaryTab(tab){
+    activeSummaryTab = tab;
+    ["overview","reports","manage"].forEach(t=>{
+      const panel = document.getElementById(`summary-tab-${t}`);
+      if(panel) panel.style.display = (t===tab) ? "block" : "none";
+    });
+    document.querySelectorAll(".subnav-btn").forEach(btn=>{
+      btn.classList.toggle("active", btn.dataset.tab === tab);
+    });
   }
 
   function openTransactionEditor(txnId, renderList){
@@ -2861,7 +2912,7 @@
     panel.scrollIntoView({behavior:"smooth",block:"nearest"});
   }
 
-  function addTransactionSearchManager(){
+  function addTransactionSearchManager(container){
     const section=document.createElement("div"); section.className="summary-section"; section.id="txn-search-section";
     const cats=getCategories("Expense");
     const payments=[...new Set([...PAYMENT_METHODS, ...transactions.map(t=>t.payment).filter(Boolean)])];
@@ -2880,7 +2931,7 @@
       </div>
       <div class="search-actions"><button class="data-action" id="txn-search-apply">Search</button><button class="data-action" id="txn-search-clear">Clear</button></div>
       <div id="txn-search-results" class="search-results"></div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const q=id=>section.querySelector(id);
     const result=section.querySelector("#txn-search-results");
 
@@ -3127,7 +3178,7 @@
     addBackButton();
   }
 
-  function addRecurringManager(){
+  function addRecurringManager(container){
     const section=document.createElement("div"); section.className="summary-section";
     const catOptions=getCategories("Expense").map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     section.innerHTML=`
@@ -3149,7 +3200,7 @@
         <div class="empty-note" style="margin-top:8px;">Ledger creates the transaction automatically when the monthly due date arrives. Existing transactions are never changed.</div>
         <div id="rr-list" style="margin-top:12px;"></div>
       </div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const list=section.querySelector("#rr-list");
     function render(){
       const active=recurringRules.filter(r=>r.active!==false);
@@ -3165,7 +3216,7 @@
     render();
   }
 
-  function addBudgetManager(){
+  function addBudgetManager(container){
     const section=document.createElement("div"); section.className="summary-section";
     const catOptions=getCategories("Expense").map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     section.innerHTML=`
@@ -3179,7 +3230,7 @@
         <div class="empty-note" style="margin-top:8px;">Budgets reset each calendar month. Transactions are never changed.</div>
         <div id="budget-list" style="margin-top:12px;"></div>
       </div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const list=section.querySelector("#budget-list");
     function render(){
       const entries=Object.entries(budgets.Expense||{}).filter(([,v])=>Number(v)>0);
@@ -3199,7 +3250,7 @@
     render();
   }
 
-  function addCategoryManager(){
+  function addCategoryManager(container){
     const section=document.createElement("div");
     section.className="summary-section";
     section.innerHTML=`
@@ -3210,7 +3261,7 @@
       </div>
       <div class="empty-note" id="custom-cat-list"></div>
     `;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const list=section.querySelector("#custom-cat-list");
     function render(){
       const e=customCategories.Expense.length ? customCategories.Expense.join(" · ") : "No custom expense categories";
@@ -3273,11 +3324,11 @@
     addBackButton();
   }
 
-  function addMerchantMemoryManager(){
+  function addMerchantMemoryManager(container){
     const section=document.createElement("div");
     section.className="summary-section";
     section.innerHTML=`<h2>Learned categories</h2><div class="memory-card"><div class="empty-note" id="merchant-memory-list"></div></div>`;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
     const list=section.querySelector("#merchant-memory-list");
 
     const rows=[];
@@ -3351,7 +3402,7 @@
     }
   }
 
-  function addDataTools(){
+  function addDataTools(container){
     const section = document.createElement("div");
     section.className = "summary-section";
     section.innerHTML = `
@@ -3370,7 +3421,7 @@
         <button type="button" class="data-action" id="paste-backup-restore" style="display:none;margin-top:8px;">Restore Pasted Backup</button>
       </div>
     `;
-    summaryContent.appendChild(section);
+    container.appendChild(section);
 
     section.querySelector("#export-backup").addEventListener("click", e=>{
       e.preventDefault(); e.stopPropagation(); exportBackup();
