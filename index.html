@@ -3,32 +3,48 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#0D1712" />
+  <meta name="theme-color" content="#FAF9F5" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <script>
+    /* Runs before first paint so the page never flashes the wrong theme.
+       Uses the saved choice if there is one, otherwise the system setting. */
+    (function(){
+      var theme = "light";
+      try{
+        var saved = localStorage.getItem("ledger:theme");
+        if(saved === "light" || saved === "dark") theme = saved;
+        else if(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) theme = "dark";
+      }catch(e){}
+      document.documentElement.setAttribute("data-theme", theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute("content", theme === "dark" ? "#0E1510" : "#FAF9F5");
+    })();
+  </script>
 <title>Ledger — your money, in plain English</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #0D1712;
-    --panel: #162620;
-    --panel-2: #0B1410;
-    --panel-raised: #1B2E27;
-    --line: #24352C;
-    --line-soft: #1B2921;
-    --text: #EDF4EF;
-    --text-muted: #8FA398;
-    --text-dim: #5C6E63;
-    --gold: #D2AC5C;
-    --gold-soft: rgba(210,172,92,0.14);
-    --mint: #6FCF97;
-    --mint-soft: rgba(111,207,151,0.14);
-    --red: #E2665F;
-    --red-soft: rgba(226,102,95,0.14);
-    --chip-bg: #1A2B23;
-    --chip-hover: #223A2F;
+    --bg: #FAF9F5;
+    --panel: #FFFFFF;
+    --panel-2: #F2F1EA;
+    --panel-raised: #FFFFFF;
+    --line: #E4E1D6;
+    --line-soft: #EDEBE1;
+    --text: #16211B;
+    --text-muted: #66766B;
+    --text-dim: #9BA89E;
+    --gold: #D97706;
+    --gold-2: #F6A928;
+    --gold-soft: rgba(217,119,6,0.13);
+    --mint: #059669;
+    --mint-soft: rgba(5,150,105,0.13);
+    --red: #E11D2E;
+    --red-soft: rgba(225,29,46,0.12);
+    --chip-bg: #F3F1E8;
+    --chip-hover: #FBEACB;
     /* aliases kept for backward compatibility with previously-added styles
        that referenced tokens never defined in :root (fixes invisible/–
        default-colored text on labels and the save button) */
@@ -40,17 +56,70 @@
     --radius-lg: 18px;
     --radius-pill: 999px;
 
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.28);
-    --shadow-md: 0 8px 24px -12px rgba(0,0,0,0.55);
+    --shadow-sm: 0 1px 2px rgba(23,33,27,0.06);
+    --shadow-md: 0 14px 30px -14px rgba(23,33,27,0.2);
     --nav-h: 62px;
 
+    /* surfaces that used to be hardcoded */
+    --header-bg: rgba(250,249,245,0.78);
+    --nav-bg: rgba(250,249,245,0.88);
+    --glow: rgba(217,119,6,0.10);
+
+    /* chat bubbles + confirm cards (dark green on cream in light mode) */
+    --bubble-bg: #1B2A20;
+    --bubble-text: #F3F1E7;
+    --bubble-muted: #A9BBAC;
+    --bubble-border: transparent;
+    --bubble-user-bg: linear-gradient(135deg, #B45309, #8A3E0B);
+    --bubble-user-text: #FFF6E8;
+
+    color-scheme: light;
     font-size: 16px;
+  }
+
+  /* ---------- dark theme ----------
+     Same warm-green / amber identity, inverted: near-black green surfaces,
+     brighter amber + mint + red so accents keep their contrast. */
+  :root[data-theme="dark"]{
+    --bg: #0E1510;
+    --panel: #151E18;
+    --panel-2: #1B261F;
+    --panel-raised: #1B261F;
+    --line: #2C3A31;
+    --line-soft: #222E26;
+    --text: #ECEBE2;
+    --text-muted: #A3B3A7;
+    --text-dim: #7B8C80;
+    --gold: #F59E0B;
+    --gold-2: #FBBF24;
+    --gold-soft: rgba(245,158,11,0.15);
+    --mint: #34D399;
+    --mint-soft: rgba(52,211,153,0.15);
+    --red: #FF7A7A;
+    --red-soft: rgba(255,122,122,0.15);
+    --chip-bg: #1E2A22;
+    --chip-hover: #2E2814;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 14px 30px -14px rgba(0,0,0,0.7);
+
+    --header-bg: rgba(14,21,16,0.78);
+    --nav-bg: rgba(14,21,16,0.88);
+    --glow: rgba(245,158,11,0.08);
+
+    /* bubbles sit on a dark page now, so lift them slightly and outline them */
+    --bubble-bg: #1F2D24;
+    --bubble-border: #33443A;
+
+    color-scheme: dark;
   }
   *{ box-sizing: border-box; }
   html,body{ height:100%; }
   body{
     margin:0;
-    background: var(--bg);
+    background:
+      radial-gradient(600px 340px at 50% -60px, var(--glow), transparent 70%),
+      var(--bg);
     color: var(--text);
     font-family: 'IBM Plex Sans', sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -70,7 +139,7 @@
     padding: 16px 20px;
     padding-top: max(16px, env(safe-area-inset-top));
     border-bottom: 1px solid var(--line);
-    background: rgba(22,38,32,0.72);
+    background: var(--header-bg);
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     flex-shrink:0;
@@ -85,12 +154,12 @@
     min-width:0;
   }
   .brand-mark{
-    width:10px; height:10px;
-    background: var(--gold);
+    width:11px; height:11px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
     display:inline-block;
     border-radius: 3px;
     transform: rotate(45deg);
-    box-shadow: 0 0 0 4px var(--gold-soft);
+    box-shadow: 0 0 0 5px var(--gold-soft), 0 0 14px -2px rgba(217,119,6,0.55);
     flex-shrink:0;
   }
   .brand-name{
@@ -135,6 +204,53 @@
     flex-shrink:0;
   }
   .offline-badge.show{display:inline-flex;}
+
+  /* ---------- light / dark toggle ---------- */
+  .theme-toggle{
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--chip-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .theme-toggle:hover{ border-color: var(--gold); background: var(--chip-hover); color: var(--text); }
+  .theme-toggle:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  .theme-toggle svg{
+    display: none;
+    width: 18px; height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* show the icon for the mode you'd switch TO */
+  :root:not([data-theme="dark"]) .theme-toggle .icon-moon{ display: block; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun{ display: block; }
+  .theme-toggle.switching svg{ animation: theme-icon-in .38s cubic-bezier(.2,.8,.2,1); }
+  @keyframes theme-icon-in{
+    from{ transform: rotate(-70deg) scale(.55); opacity: 0; }
+    to{ transform: none; opacity: 1; }
+  }
+  /* brief cross-fade when the theme changes (added/removed by JS) */
+  html.theme-anim,
+  html.theme-anim *,
+  html.theme-anim *::before,
+  html.theme-anim *::after{
+    transition: background-color .25s ease, color .25s ease, border-color .25s ease,
+                box-shadow .25s ease, fill .25s ease, stroke .25s ease !important;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .theme-toggle.switching svg{ animation: none; }
+  }
+
   @media (max-width:560px){
     header{padding:12px 14px; padding-top: max(12px, env(safe-area-inset-top));}
     .header-right{gap:8px;}
@@ -148,11 +264,18 @@
     line-height:1.1;
   }
   .balance-stat .amt{
+    display:inline-block;
     font-family:'IBM Plex Mono', monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 19px;
-    font-weight:600;
-    letter-spacing: -0.2px;
+    font-size: 20px;
+    font-weight:700;
+    letter-spacing: -0.3px;
+    color: var(--mint);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    padding: 4px 12px;
+    box-shadow: var(--shadow-sm);
   }
   .balance-stat .lbl{
     font-size: 10.5px;
@@ -170,7 +293,7 @@
     display:flex;
     gap: 6px;
     padding: 7px max(14px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
-    background: rgba(11,20,16,0.86);
+    background: var(--nav-bg);
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
     border-top: 1px solid var(--line);
@@ -255,8 +378,9 @@
     padding: 11px 14px;
     font-size: 14.5px;
     line-height:1.55;
-    background: var(--panel);
-    border: 1px solid var(--line-soft);
+    background: var(--bubble-bg);
+    color: var(--bubble-text);
+    border: 1px solid var(--bubble-border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
   }
@@ -264,23 +388,24 @@
     border-bottom-left-radius: 4px;
   }
   .msg-row.user .bubble{
-    background: var(--gold-soft);
-    border-color: rgba(210,172,92,0.28);
-    color: var(--text);
+    background: var(--bubble-user-bg);
+    color: var(--bubble-user-text);
+    border-color: transparent;
     border-bottom-right-radius: 4px;
   }
-  .bubble b{ font-weight: 600; }
+  .bubble b{ font-weight: 700; }
   .bubble .highlight-amt{
     font-family:'IBM Plex Mono', monospace;
-    font-weight:600;
-    color: var(--mint);
+    font-weight:700;
+    color: #4ADE94;
   }
-  .bubble .highlight-amt.neg{ color: var(--red); }
+  .bubble .highlight-amt.neg{ color: #FF8A80; }
 
   .confirm-card{
     padding: 14px 16px;
-    background: var(--panel-raised);
-    border: 1px solid var(--line);
+    background: var(--bubble-bg);
+    color: var(--bubble-text);
+    border: 1px solid var(--bubble-border);
     border-radius: var(--radius-lg);
     font-size: 13.5px;
     line-height: 1.6;
@@ -294,12 +419,12 @@
     align-items:center;
     gap: 12px;
     padding: 6px 0;
-    border-bottom: 1px solid var(--line-soft);
+    border-bottom: 1px solid rgba(255,255,255,0.09);
   }
   .confirm-card .row:last-child{ border-bottom:none; padding-bottom:0; }
   .confirm-card .row:first-child{ padding-top:0; }
-  .confirm-card .row .k{ color: var(--text-muted); font-size:12.5px; }
-  .confirm-card .row .v{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .confirm-card .row .k{ color: var(--bubble-muted); font-size:12.5px; }
+  .confirm-card .row .v{ font-family:'IBM Plex Mono', monospace; font-weight:600; color: var(--bubble-text); }
 
   /* choices */
   .choices{
@@ -323,6 +448,7 @@
   .chip:hover{
     background: var(--chip-hover);
     border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(217,119,6,0.15);
   }
   .chip:active{ transform: scale(0.97); }
   .chip.chosen{
@@ -331,14 +457,16 @@
     color: var(--text-dim);
     cursor:default;
   }
-  .chip.danger{ color: var(--red); border-color: rgba(226,102,95,0.35); }
-  .chip.danger:hover{ border-color: var(--red); background: var(--red-soft); }
+  .chip.danger{ color: var(--red); border-color: rgba(225,29,46,0.45); }
+  .chip.danger:hover{ border-color: var(--red); background: var(--red-soft); box-shadow: 0 0 0 1px rgba(225,29,46,0.2); }
   .chip.primary{
-    border-color: var(--gold);
-    background: var(--gold-soft);
-    color: var(--gold);
-    font-weight: 600;
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color: #1A1206;
+    font-weight: 700;
+    box-shadow: 0 4px 16px -4px rgba(246,169,40,0.65), 0 0 0 1px rgba(217,119,6,0.3);
   }
+  .chip.primary:hover{ filter: brightness(1.08); }
 
   .back-chip{
     margin-top: 8px;
@@ -399,42 +527,43 @@
     font-size:15px;
     font-family:'IBM Plex Mono', monospace;
     outline:none;
-    color-scheme:dark;
     transition: border-color .15s, box-shadow .15s;
   }
   .date-row input[type="date"]:focus{ border-color:var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
   .date-row button.send{
-    background:var(--gold);
-    color:#152018;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color:#1A1206;
     border:none;
     padding:0 18px;
     border-radius:var(--radius-md);
     font-size:13.5px;
-    font-weight:600;
+    font-weight:700;
     cursor:pointer;
     font-family:'IBM Plex Sans',sans-serif;
-    transition: opacity .15s, transform .1s;
+    box-shadow: 0 4px 14px -4px rgba(246,169,40,0.6);
+    transition: filter .15s, transform .1s;
   }
-  .date-row button.send:hover{ opacity:.9; }
+  .date-row button.send:hover{ filter: brightness(1.08); }
   .date-row button.send:active{ transform: scale(0.97); }
-  .date-row button.send:disabled{ opacity:.4; cursor:default; }
+  .date-row button.send:disabled{ opacity:.4; cursor:default; box-shadow:none; }
 
   .input-row button.send{
-    background: var(--gold);
-    color: #152018;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color: #1A1206;
     border:none;
     padding: 0 18px;
     border-radius: var(--radius-md);
     font-size: 13.5px;
-    font-weight:600;
+    font-weight:700;
     cursor:pointer;
     font-family: 'IBM Plex Sans', sans-serif;
     flex-shrink: 0;
-    transition: opacity .15s, transform .1s;
+    box-shadow: 0 4px 14px -4px rgba(246,169,40,0.6);
+    transition: filter .15s, transform .1s;
   }
-  .input-row button.send:hover{ opacity:0.9; }
+  .input-row button.send:hover{ filter: brightness(1.08); }
   .input-row button.send:active{ transform: scale(0.97); }
-  .input-row button.send:disabled{ opacity:0.4; cursor:default; }
+  .input-row button.send:disabled{ opacity:0.4; cursor:default; box-shadow:none; }
 
   /* quick example suggestion chips shown under the welcome prompt */
   .quick-examples{
@@ -467,15 +596,15 @@
     gap:4px;
     padding: 10px 13px;
     align-self:flex-start;
-    background: var(--panel);
-    border: 1px solid var(--line-soft);
+    background: var(--bubble-bg);
+    border: 1px solid var(--bubble-border);
     border-radius: var(--radius-md);
     border-bottom-left-radius: 4px;
     width: fit-content;
   }
   .typing span{
     width:5px; height:5px;
-    background: var(--text-dim);
+    background: var(--bubble-muted);
     border-radius:50%;
     animation: blink 1.2s infinite ease-in-out;
   }
@@ -538,16 +667,20 @@
   .stat-box{
     background: var(--panel);
     border: 1px solid var(--line-soft);
+    border-top: 2px solid var(--line);
     border-radius: var(--radius-md);
     padding: 13px 14px;
     box-shadow: var(--shadow-sm);
   }
+  .stat-box.accent-income{ border-top-color: var(--mint); }
+  .stat-box.accent-expense{ border-top-color: var(--red); }
+  .stat-box.accent-net{ border-top-color: var(--gold); }
   .stat-box .v{
     font-family:'IBM Plex Mono', monospace;
     font-variant-numeric: tabular-nums;
-    font-size: 17px;
-    font-weight:600;
-    letter-spacing: -0.2px;
+    font-size: 18px;
+    font-weight:700;
+    letter-spacing: -0.3px;
   }
   .stat-box .v.income{ color: var(--mint); }
   .stat-box .v.expense{ color: var(--red); }
@@ -581,7 +714,7 @@
   }
   .cat-row .cat-bar-fill{
     height:100%;
-    background: var(--gold);
+    background: linear-gradient(90deg, var(--gold), var(--gold-2));
     border-radius: var(--radius-pill);
   }
   .cat-row .cat-amt{
@@ -605,15 +738,16 @@
   .txn-item:last-child{ border-bottom:none; }
   .txn-left{ display:flex; align-items:center; gap:11px; min-width:0; }
   .txn-dot{
-    width: 8px; height: 8px; border-radius:50%; flex-shrink:0;
-    background: var(--gold);
+    width: 9px; height: 9px; border-radius:50%; flex-shrink:0;
+    background: var(--red);
+    box-shadow: 0 0 0 3px var(--red-soft);
   }
-  .txn-dot.income{ background: var(--mint); }
+  .txn-dot.income{ background: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
   .txn-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
   .txn-cat{ font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .txn-meta{ font-size: 11.5px; color: var(--text-dim); }
   .txn-right{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
-  .txn-amt{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-weight:600; }
+  .txn-amt{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; font-weight:700; }
   .txn-amt.income{ color: var(--mint); }
   .txn-amt.expense{ color: var(--red); }
   .txn-del{
@@ -717,28 +851,30 @@
   .data-action.danger:hover{ border-color:var(--red); }
 
   .insight-banner{
-    margin-top: 12px;
-    padding: 11px 13px;
+    margin-top: 14px;
+    padding: 13px 15px;
     border-radius: var(--radius-md);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 13.5px;
+    line-height: 1.55;
     background: var(--gold-soft);
-    border: 1px solid rgba(210,172,92,0.28);
+    border: 1px solid rgba(217,119,6,0.3);
+    border-left: 3px solid var(--gold);
     color: var(--text);
   }
   .insight-banner.warn{
     background: var(--red-soft);
-    border-color: rgba(226,102,95,0.3);
+    border-color: rgba(225,29,46,0.3);
+    border-left-color: var(--red);
   }
 
   .trend-list{margin-top:10px;display:flex;flex-direction:column;gap:10px}
   .trend-row{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;font-size:13px}
   .trend-label{color:var(--text-muted);text-transform:capitalize}
   .trend-track{height:8px;border-radius:var(--radius-pill);background:var(--line-soft);overflow:hidden;border:none}
-  .trend-fill{display:block;height:100%;border-radius:var(--radius-pill);background:var(--gold)}
+  .trend-fill{display:block;height:100%;border-radius:var(--radius-pill);background:linear-gradient(90deg, var(--gold), var(--gold-2))}
   .trend-amt{min-width:82px;text-align:right;font-variant-numeric: tabular-nums;}
 </style>
-  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ledger%22%2C%22short_name%22%3A%22Ledger%22%2C%22start_url%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230D1712%22%2C%22theme_color%22%3A%22%230D1712%22%7D" />
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ledger%22%2C%22short_name%22%3A%22Ledger%22%2C%22start_url%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23FAF9F5%22%2C%22theme_color%22%3A%22%23FAF9F5%22%7D" />
 
 <style>
 .search-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
@@ -766,7 +902,7 @@
 .txn-edit-grid input:focus,.txn-edit-grid select:focus,.txn-edit-panel textarea:focus{ outline:none; border-color:var(--gold); }
 .txn-edit-actions{display:flex;gap:8px;flex-wrap:wrap}
 .txn-edit-actions button{padding:9px 14px;border-radius:var(--radius-md);border:1px solid var(--line);cursor:pointer;font:inherit;font-size:13px;}
-.txn-edit-actions .txn-save{background:var(--accent);color:#152018;border-color:var(--accent);font-weight:600;}
+.txn-edit-actions .txn-save{background:var(--accent);color:#1A1206;border-color:var(--accent);font-weight:600;}
 .txn-edit-actions .txn-cancel{background:transparent;color:var(--text)}
 .txn-edit-actions .txn-cancel:hover{ background: var(--chip-bg); }
 @media(max-width:600px){.txn-edit-grid{grid-template-columns:1fr}}
@@ -796,6 +932,10 @@
   <div class="header-right">
     <span id="offline-badge" class="offline-badge"><span class="txt">Offline</span></span>
     <button id="install-btn" class="install-btn" type="button" aria-label="Install Ledger">＋<span class="txt"> Install</span></button>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+    </button>
     <div class="balance-stat">
       <div class="amt num" id="header-balance">₹0.00</div>
       <div class="lbl">balance</div>
@@ -1410,7 +1550,7 @@
     flowHistory = [];
 
     showTyping(() => {
-      addBotMessage('What did you spend or receive? <span style="color:var(--text-muted)">Just type it naturally — I\'ll ask if anything\'s unclear.</span>');
+      addBotMessage('What did you spend or receive? <span style="color:var(--bubble-muted)">Just type it naturally — I\'ll ask if anything\'s unclear.</span>');
       renderQuickInput();
 
       const label = document.createElement("div");
@@ -2735,9 +2875,9 @@
         <div class="summary-section">
           <h2>This month · ${escapeHtml(monthName())}</h2>
           <div class="stat-grid">
-            <div class="stat-box"><div class="v income">${fmt(monthIncome)}</div><div class="l">income</div></div>
-            <div class="stat-box"><div class="v expense">${fmt(monthExpense)}</div><div class="l">spent</div></div>
-            <div class="stat-box"><div class="v">${fmt(monthNet)}</div><div class="l">net</div></div>
+            <div class="stat-box accent-income"><div class="v income">${fmt(monthIncome)}</div><div class="l">income</div></div>
+            <div class="stat-box accent-expense"><div class="v expense">${fmt(monthExpense)}</div><div class="l">spent</div></div>
+            <div class="stat-box accent-net"><div class="v">${fmt(monthNet)}</div><div class="l">net</div></div>
           </div>
           <div class="insight-banner ${insight.tone}">${insight.text}</div>
         </div>
@@ -2773,9 +2913,9 @@
         <div class="summary-section">
           <h2>All-time overview</h2>
           <div class="stat-grid">
-            <div class="stat-box"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
-            <div class="stat-box"><div class="v expense">${fmt(expense)}</div><div class="l">expenses</div></div>
-            <div class="stat-box"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
+            <div class="stat-box accent-income"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
+            <div class="stat-box accent-expense"><div class="v expense">${fmt(expense)}</div><div class="l">expenses</div></div>
+            <div class="stat-box accent-net"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
           </div>
         </div>
         <div class="summary-section">
@@ -3189,8 +3329,8 @@
           <input id="rr-amount" placeholder="Amount" inputmode="decimal" style="width:120px;">
         </div>
         <div class="input-row" style="flex-wrap:wrap;margin-top:8px;">
-          <select id="rr-category" style="flex:1;min-width:150px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
-          <select id="rr-payment" style="flex:1;min-width:140px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${PAYMENT_METHODS.map(p=>`<option>${escapeHtml(p)}</option>`).join("")}</select>
+          <select id="rr-category" style="flex:1;min-width:150px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
+          <select id="rr-payment" style="flex:1;min-width:140px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${PAYMENT_METHODS.map(p=>`<option>${escapeHtml(p)}</option>`).join("")}</select>
           <input id="rr-day" type="number" min="1" max="31" value="1" style="width:80px;" title="Day of month">
         </div>
         <div class="input-row" style="margin-top:8px;flex-wrap:wrap;">
@@ -3223,7 +3363,7 @@
       <h2>Budgets</h2>
       <div class="memory-card">
         <div class="input-row" style="flex-wrap:wrap;">
-          <select id="budget-category" style="flex:1;min-width:180px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
+          <select id="budget-category" style="flex:1;min-width:180px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:10px;">${catOptions}</select>
           <input id="budget-amount" placeholder="Monthly limit" inputmode="decimal" style="width:150px;">
           <button class="data-action" id="budget-add">Set budget</button>
         </div>
@@ -3477,6 +3617,58 @@
   }
   tabChat.addEventListener("click", () => switchView("chat"));
   tabSummary.addEventListener("click", () => switchView("summary"));
+
+  // ---------- theme (light / dark) ----------
+  // The <head> script already set data-theme before first paint. This wires up
+  // the toggle, persists an explicit choice, and keeps following the system
+  // setting only until the user has picked one themselves.
+  const THEME_KEY = "ledger:theme";
+  const THEME_COLORS = { light: "#FAF9F5", dark: "#0E1510" };
+  const themeToggle = document.getElementById("theme-toggle");
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  const systemDark = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  const reducedMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+  function readStoredTheme(){
+    try{
+      const t = localStorage.getItem(THEME_KEY);
+      return (t === "light" || t === "dark") ? t : null;
+    }catch(e){ return null; }
+  }
+  function currentTheme(){
+    return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  }
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    if(themeMeta) themeMeta.setAttribute("content", THEME_COLORS[theme]);
+    const label = `Switch to ${theme === "dark" ? "light" : "dark"} mode`;
+    themeToggle.setAttribute("aria-label", label);
+    themeToggle.setAttribute("title", label);
+  }
+
+  themeToggle.addEventListener("click", ()=>{
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    if(!(reducedMotion && reducedMotion.matches)){
+      const root = document.documentElement;
+      root.classList.add("theme-anim");
+      themeToggle.classList.add("switching");
+      setTimeout(()=>{
+        root.classList.remove("theme-anim");
+        themeToggle.classList.remove("switching");
+      }, 400);
+    }
+    applyTheme(next);
+    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  });
+
+  if(systemDark){
+    const onSystemThemeChange = (e)=>{
+      if(!readStoredTheme()) applyTheme(e.matches ? "dark" : "light");
+    };
+    if(systemDark.addEventListener) systemDark.addEventListener("change", onSystemThemeChange);
+    else if(systemDark.addListener) systemDark.addListener(onSystemThemeChange);
+  }
+  applyTheme(readStoredTheme() || (systemDark && systemDark.matches ? "dark" : "light"));
 
   // ---------- PWA / phone experience ----------
   let deferredInstallPrompt = null;
