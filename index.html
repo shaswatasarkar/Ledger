@@ -873,6 +873,41 @@
   .trend-track{height:8px;border-radius:var(--radius-pill);background:var(--line-soft);overflow:hidden;border:none}
   .trend-fill{display:block;height:100%;border-radius:var(--radius-pill);background:linear-gradient(90deg, var(--gold), var(--gold-2))}
   .trend-amt{min-width:82px;text-align:right;font-variant-numeric: tabular-nums;}
+  .backup-notice{
+    margin: 10px 14px 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius-md);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .backup-notice-row{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .backup-notice strong{font-weight:600;}
+  .backup-notice .notice-actions{display:flex;gap:7px;flex-shrink:0;align-items:center;}
+  .backup-notice button{
+    border:1px solid var(--line);
+    background:var(--chip-bg);
+    color:var(--text);
+    border-radius:var(--radius-pill);
+    padding:6px 9px;
+    font:500 11.5px 'IBM Plex Sans',sans-serif;
+    cursor:pointer;
+  }
+  .backup-notice button:hover{border-color:var(--gold);background:var(--chip-hover);}
+  .backup-notice .notice-dismiss{border-color:transparent;background:transparent;color:var(--text-muted);}
+  @media(max-width:560px){
+    .backup-notice{margin:8px 10px 0;}
+    .backup-notice-row{align-items:center;}
+  }
 </style>
   <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Ledger%22%2C%22short_name%22%3A%22Ledger%22%2C%22start_url%22%3A%22./%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23FAF9F5%22%2C%22theme_color%22%3A%22%23FAF9F5%22%7D" />
 
@@ -945,6 +980,15 @@
 
 <main>
   <div id="chat-view">
+    <div id="backup-notice" class="backup-notice" style="display:none;" role="status">
+      <div class="backup-notice-row">
+        <div><strong>Your data is stored only on this device.</strong><br>Export a backup regularly so you can restore your Ledger data if browser storage is cleared.</div>
+        <div class="notice-actions">
+          <button id="backup-notice-export" type="button">Export</button>
+          <button id="backup-notice-dismiss" class="notice-dismiss" type="button" aria-label="Dismiss backup notice">Dismiss</button>
+        </div>
+      </div>
+    </div>
     <div id="chat-log"></div>
   </div>
 
@@ -1151,6 +1195,8 @@
   const APP_STATE_KEY = "ledger:app-state:v1";
   const RECURRING_KEY = "ledger:recurring:v1";
   const BUDGETS_KEY = "ledger:budgets:v1";
+  const BACKUP_LAST_EXPORTED_KEY = "ledger:backup:last-exported";
+  const BACKUP_NOTICE_DISMISSED_KEY = "ledger:backup:notice-dismissed";
   let customCategories = { Expense: [], Income: [] };
   let merchantMemory = { Expense: {}, Income: {} };
   let trustedMerchantMemory = { Expense: {}, Income: {} };
@@ -3134,6 +3180,50 @@
     render();
   }
 
+  // ---------- backup safety ----------
+  function markBackupExported(){
+    try{
+      localStorage.setItem(BACKUP_LAST_EXPORTED_KEY, new Date().toISOString());
+    }catch(e){}
+    updateBackupSafetyUI();
+  }
+
+  function getLastBackupDate(){
+    try{
+      const raw = localStorage.getItem(BACKUP_LAST_EXPORTED_KEY);
+      if(!raw) return null;
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }catch(e){ return null; }
+  }
+
+  function formatBackupDate(date){
+    if(!date) return "Never";
+    return date.toLocaleString("en-IN", {
+      day:"2-digit", month:"short", year:"numeric",
+      hour:"2-digit", minute:"2-digit"
+    });
+  }
+
+  function updateBackupSafetyUI(){
+    const last = getLastBackupDate();
+    const status = document.getElementById("backup-status");
+    if(status){
+      status.textContent = last ? `Last backup: ${formatBackupDate(last)}` : "Last backup: Never";
+    }
+
+    const notice = document.getElementById("backup-notice");
+    if(!notice) return;
+    let dismissed = false;
+    try{ dismissed = localStorage.getItem(BACKUP_NOTICE_DISMISSED_KEY) === "1"; }catch(e){}
+    notice.style.display = (!last && !dismissed) ? "block" : "none";
+  }
+
+  function dismissBackupNotice(){
+    try{ localStorage.setItem(BACKUP_NOTICE_DISMISSED_KEY, "1"); }catch(e){}
+    updateBackupSafetyUI();
+  }
+
   // ---------- data tools ----------
   function getFullBackupObject(){
     return {
@@ -3155,11 +3245,11 @@
   async function exportBackup(){
     const data = getBackupText();
     const filename = `ledger-backup-${new Date().toISOString().slice(0,10)}.json`;
-    const file = new File([data], filename, {type:"application/json"});
 
-    // Best option on supported desktop browsers: native Save As dialog.
-    try{
-      if(window.showSaveFilePicker){
+    // First choice: native Save As dialog. This is the most reliable way to
+    // save a real file when the browser exposes the File System Access API.
+    if(window.showSaveFilePicker && window.isSecureContext){
+      try{
         const handle = await window.showSaveFilePicker({
           suggestedName: filename,
           types:[{
@@ -3170,57 +3260,73 @@
         const writable = await handle.createWritable();
         await writable.write(data);
         await writable.close();
+        markBackupExported();
         showBackupMessage("Backup saved successfully.");
-        return;
+        return true;
+      }catch(err){
+        if(err && err.name === "AbortError"){
+          showBackupMessage("Backup save cancelled. Your data was not changed.");
+          return false;
+        }
+        console.warn("Save picker failed; using download fallback:", err);
       }
-    }catch(err){
-      // User cancellation should not be treated as an error.
-      if(err && err.name === "AbortError"){
-        showBackupMessage("Backup save cancelled.");
-        return;
-      }
-      console.warn("Save picker unavailable:", err);
     }
 
-    // Mobile-friendly share sheet when available.
-    try{
-      if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-        await navigator.share({
-          title:"Ledger Backup",
-          text:"Ledger backup",
-          files:[file]
-        });
-        showBackupMessage("Backup shared/saved successfully.");
-        return;
-      }
-    }catch(err){
-      if(err && err.name === "AbortError"){
-        showBackupMessage("Backup save cancelled.");
-        return;
-      }
-      console.warn("Share failed:", err);
-    }
-
-    // Normal download fallback.
+    // Second choice: prepare a real download link. Some browsers, especially
+    // when Ledger is opened directly as a local HTML file, can ignore a
+    // programmatic anchor.click(). A visible user-clickable link avoids that
+    // restriction and also gives us a reliable fallback instead of falsely
+    // claiming that a file was downloaded.
+    let blobUrl = null;
     try{
       const blob = new Blob([data], {type:"application/json;charset=utf-8"});
-      const url = URL.createObjectURL(blob);
+      blobUrl = URL.createObjectURL(blob);
+      const link = document.getElementById("backup-download-link");
+      if(link){
+        link.href = blobUrl;
+        link.download = filename;
+        link.textContent = `Download ${filename}`;
+        link.style.display = "inline-flex";
+        link.onclick = ()=>{
+          // The click is now a direct user gesture. Only after it has been
+          // initiated do we record the backup timestamp.
+          setTimeout(()=>{
+            markBackupExported();
+            showBackupMessage(`Backup download initiated: ${filename}`);
+          }, 0);
+        };
+        showBackupMessage("Your browser blocked the automatic download. Click the Download Backup File button below.");
+        return false;
+      }
+
+      // If the fallback link is unavailable, try one final direct click.
       const a = document.createElement("a");
-      a.href = url;
+      a.href = blobUrl;
       a.download = filename;
-      a.style.display = "none";
+      a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),3000);
-      showBackupMessage("Backup download started. Check your Downloads folder.");
-      return;
+      showBackupMessage(`Backup download initiated: ${filename}`);
+      markBackupExported();
+      return true;
     }catch(err){
-      console.warn("Blob download failed:", err);
+      console.warn("Backup download preparation failed:", err);
+      if(blobUrl) URL.revokeObjectURL(blobUrl);
     }
 
-    // Last-resort: keep the working copy-to-clipboard route available.
-    await copyBackup();
+    // Last resort: expose the complete JSON for manual saving.
+    const box = document.getElementById("backup-copy-box");
+    if(box){
+      box.value = data;
+      box.style.display = "block";
+      box.focus();
+      box.select();
+      showBackupMessage("Automatic download was blocked. The backup text is selected below; copy it into a file named ledger-backup.json.");
+    }else{
+      showBackupMessage("Automatic backup export was blocked by the browser. Use Copy Backup instead.");
+    }
+    return false;
   }
 
   function showBackupMessage(message){
@@ -3233,6 +3339,7 @@
     try{
       await navigator.clipboard.writeText(data);
       showBackupMessage("Backup copied to clipboard. Paste it into a file named ledger-backup.json.");
+      markBackupExported();
     }catch(err){
       // Clipboard may be unavailable for local HTML files. Show the backup in
       // a temporary textarea so the user can manually copy it.
@@ -3554,6 +3661,7 @@
         <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
       </div>
       <div id="backup-status" class="empty-note" style="margin-top:8px;"></div>
+      <a id="backup-download-link" class="data-action" href="#" download style="display:none;margin-top:8px;text-decoration:none;">Download Backup File</a>
       <textarea id="backup-copy-box" readonly style="display:none;width:100%;min-height:120px;margin-top:8px;padding:10px;border-radius:var(--radius-md);border:1px solid var(--line);background:var(--panel-2);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11.5px;"></textarea>
       <div style="margin-top:10px;">
         <button type="button" class="data-action" id="paste-backup-toggle">Restore from Backup Text</button>
@@ -3562,6 +3670,7 @@
       </div>
     `;
     container.appendChild(section);
+    updateBackupSafetyUI();
 
     section.querySelector("#export-backup").addEventListener("click", e=>{
       e.preventDefault(); e.stopPropagation(); exportBackup();
@@ -3705,6 +3814,27 @@
     installBtn.classList.remove("show");
   });
 
+  // ---------- backup notice ----------
+  const backupNoticeExport = document.getElementById("backup-notice-export");
+  const backupNoticeDismiss = document.getElementById("backup-notice-dismiss");
+  if(backupNoticeExport){
+    backupNoticeExport.addEventListener("click", ()=>exportBackup());
+  }
+  if(backupNoticeDismiss){
+    backupNoticeDismiss.addEventListener("click", dismissBackupNotice);
+  }
+
+  // ---------- offline app shell ----------
+  // Service workers require a secure context (HTTPS or localhost). When Ledger
+  // is opened directly as a file:// URL, registration is skipped safely.
+  if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")){
+    window.addEventListener("load", ()=>{
+      navigator.serviceWorker.register("./sw.js", {scope:"./"})
+        .then(()=>console.info("Ledger offline shell ready."))
+        .catch(err=>console.warn("Ledger offline shell could not be registered:", err));
+    });
+  }
+
   // ---------- init ----------
   async function init(){
     addBotMessage("Loading your ledger…");
@@ -3731,6 +3861,7 @@
     saveAppState();
     chatLog.innerHTML = "";
     renderBalance();
+    updateBackupSafetyUI();
 
     if(transactions.length){
       addBotMessage(`Welcome back — you've logged ${transactions.length} transaction${transactions.length===1?'':'s'} so far.`);
