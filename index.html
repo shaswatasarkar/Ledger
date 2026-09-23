@@ -687,7 +687,7 @@
   <div id="chat-view">
     <div id="backup-notice" class="backup-notice" style="display:none;" role="status">
       <div class="backup-notice-row">
-        <div><strong>Your data is stored on this device.</strong><br>Sign in with Supabase to sync automatically across all your devices.</div>
+        <div><strong>Your data is stored on this device.</strong><br>Sign in to sync automatically across all your devices.</div>
         <div class="notice-actions">
           <button id="backup-notice-export" type="button">Export</button>
           <button id="backup-notice-dismiss" class="notice-dismiss" type="button">Dismiss</button>
@@ -725,7 +725,7 @@
     <div id="auth-user-view" style="display:none;">
       <div class="auth-status-box">
         <div style="font-weight:600;font-size:14px;" id="auth-user-email">user@example.com</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;" id="auth-sync-status">🟢 Synced with Supabase</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;" id="auth-sync-status">🟢 Synced to Cloud</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:14px;">
         <button id="auth-sync-now-btn" class="data-action primary" type="button">Sync Now</button>
@@ -739,7 +739,6 @@
         <button class="auth-tab-btn active" data-tab="signin" type="button">Sign In</button>
         <button class="auth-tab-btn" data-tab="signup" type="button">Sign Up</button>
         <button class="auth-tab-btn" data-tab="magic" type="button">Magic Link</button>
-        <button class="auth-tab-btn" data-tab="config" type="button">Supabase</button>
       </div>
 
       <form id="form-signin" class="auth-tab-panel">
@@ -777,23 +776,6 @@
         <div id="magic-msg" class="auth-msg" style="display:none;"></div>
         <button class="auth-submit-btn" type="submit">Send Magic Link</button>
       </form>
-
-      <div id="form-config" class="auth-tab-panel" style="display:none;">
-        <p class="auth-hint">Connect your Supabase project directly in the browser, or set it via Vercel.</p>
-        <div class="form-group">
-          <label>Supabase Project URL</label>
-          <input id="cfg-url" type="url" placeholder="https://ggjykvmrrviytajbwhwo.supabase.co">
-        </div>
-        <div class="form-group">
-          <label>Supabase Anon Key</label>
-          <input id="cfg-key" type="password" placeholder="eyJhbGciOi...">
-        </div>
-        <div id="cfg-msg" class="auth-msg" style="display:none;"></div>
-        <div style="display:flex;gap:8px;">
-          <button id="cfg-save-btn" class="auth-submit-btn" type="button">Save Credentials</button>
-          <button id="cfg-clear-btn" class="data-action" type="button" style="margin-top:8px;">Clear</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -1205,7 +1187,7 @@
     if(status === "synced") authBtnLabel.textContent = currentUser ? "Synced" : "Guest";
     else if(status === "syncing") authBtnLabel.textContent = "Syncing…";
     else if(status === "error") authBtnLabel.textContent = "Error";
-    else authBtnLabel.textContent = getSupabaseConfig().url ? "Sign In" : "Connect";
+    else authBtnLabel.textContent = currentUser ? "Synced" : "Sign In";
   }
 
   authBtn.onclick = () => {
@@ -1229,36 +1211,10 @@
     };
   });
 
-  // Supabase In-App Config Save
-  const cfgUrl = document.getElementById("cfg-url"), cfgKey = document.getElementById("cfg-key"), cfgMsg = document.getElementById("cfg-msg");
-  const initial = getSupabaseConfig();
-  if(initial.url) cfgUrl.value = initial.url;
-  if(initial.anonKey) cfgKey.value = initial.anonKey;
-
-  document.getElementById("cfg-save-btn").onclick = () => {
-    const url = cfgUrl.value.trim(), key = cfgKey.value.trim();
-    if(!url || !key){
-      cfgMsg.className = "auth-msg error"; cfgMsg.textContent = "Please enter both URL and Anon Key."; cfgMsg.style.display = "block"; return;
-    }
-    localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, anonKey: key }));
-    initSupabase();
-    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Supabase connected! You can now sign in or create an account."; cfgMsg.style.display = "block";
-    updateSyncStatusUI("disconnected");
-  };
-
-  document.getElementById("cfg-clear-btn").onclick = () => {
-    localStorage.removeItem(CONFIG_KEY);
-    initSupabase();
-    const cfg = getSupabaseConfig();
-    cfgUrl.value = cfg.url; cfgKey.value = cfg.anonKey;
-    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Reset to default project credentials."; cfgMsg.style.display = "block";
-    updateSyncStatusUI("disconnected");
-  };
-
   // Sign In Form
   document.getElementById("form-signin").onsubmit = async (e) => {
     e.preventDefault();
-    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    if(!supabase){ alert("Cloud service connection error. Please try again."); return; }
     const email = document.getElementById("signin-email").value.trim();
     const password = document.getElementById("signin-password").value;
     const errEl = document.getElementById("signin-error");
@@ -1277,7 +1233,7 @@
   // Sign Up Form
   document.getElementById("form-signup").onsubmit = async (e) => {
     e.preventDefault();
-    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    if(!supabase){ alert("Cloud service connection error. Please try again."); return; }
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
     const msgEl = document.getElementById("signup-msg");
@@ -1294,7 +1250,7 @@
   // Magic Link Form
   document.getElementById("form-magic").onsubmit = async (e) => {
     e.preventDefault();
-    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    if(!supabase){ alert("Cloud service connection error. Please try again."); return; }
     const email = document.getElementById("magic-email").value.trim();
     const msgEl = document.getElementById("magic-msg");
     msgEl.style.display = "none";
