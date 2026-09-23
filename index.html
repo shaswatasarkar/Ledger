@@ -1239,9 +1239,19 @@
     const msgEl = document.getElementById("signup-msg");
     msgEl.style.display = "none";
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin }
+      });
       if(error) throw error;
-      msgEl.className = "auth-msg"; msgEl.textContent = "Account created! Check your email to verify."; msgEl.style.display = "block";
+      if(data?.session && data?.user){
+        currentUser = data.user;
+        authModal.style.display = "none";
+        await syncPullAll();
+      } else {
+        msgEl.className = "auth-msg"; msgEl.textContent = "Account created! Check your email to verify."; msgEl.style.display = "block";
+      }
     } catch(err){
       msgEl.className = "auth-msg error"; msgEl.textContent = err.message || "Sign up failed."; msgEl.style.display = "block";
     }
@@ -1286,6 +1296,16 @@
     loadAppState();
     renderBalance();
     if(supabase){
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if(session?.user){
+          currentUser = session.user;
+          updateSyncStatusUI("syncing");
+          await syncPullAll();
+        } else {
+          currentUser = null;
+          updateSyncStatusUI("disconnected");
+        }
+      });
       const { data: { session } } = await supabase.auth.getSession();
       currentUser = session?.user || null;
       if(currentUser){
