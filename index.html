@@ -23,8 +23,642 @@
 <title>Ledger — your money, in plain English</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/src/style.css">
+<!-- Supabase JS Client via CDN (Runs instantly with zero build step) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href='data:application/manifest+json,{"name":"Ledger","short_name":"Ledger","start_url":"./","display":"standalone","background_color":"%23FAF9F5","theme_color":"%23FAF9F5","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22%3E%3Crect width=%22192%22 height=%22192%22 rx=%2240%22 fill=%22%23FAF9F5%22/%3E%3Crect x=%2276%22 y=%2276%22 width=%2240%22 height=%2240%22 rx=%228%22 fill=%22%23D97706%22 transform=%22rotate(45 96 96)%22/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect width=%22512%22 height=%22512%22 rx=%22100%22 fill=%22%23FAF9F5%22/%3E%3Crect x=%22206%22 y=%22206%22 width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23D97706%22 transform=%22rotate(45 256 256)%22/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml"}]}' />
+<style>
+  :root{
+    --bg: #FAF9F5;
+    --panel: #FFFFFF;
+    --panel-2: #F2F1EA;
+    --panel-raised: #FFFFFF;
+    --line: #E4E1D6;
+    --line-soft: #EDEBE1;
+    --text: #16211B;
+    --text-muted: #66766B;
+    --text-dim: #9BA89E;
+    --gold: #D97706;
+    --gold-2: #F6A928;
+    --gold-soft: rgba(217,119,6,0.13);
+    --mint: #059669;
+    --mint-soft: rgba(5,150,105,0.13);
+    --red: #E11D2E;
+    --red-soft: rgba(225,29,46,0.12);
+    --chip-bg: #F3F1E8;
+    --chip-hover: #FBEACB;
+    --muted: var(--text-muted);
+    --accent: var(--gold);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-pill: 999px;
+
+    --shadow-sm: 0 1px 2px rgba(23,33,27,0.06);
+    --shadow-md: 0 14px 30px -14px rgba(23,33,27,0.2);
+    --nav-h: 62px;
+
+    --header-bg: rgba(250,249,245,0.78);
+    --nav-bg: rgba(250,249,245,0.88);
+    --glow: rgba(217,119,6,0.10);
+
+    --bubble-bg: #1B2A20;
+    --bubble-text: #F3F1E7;
+    --bubble-muted: #A9BBAC;
+    --bubble-border: transparent;
+    --bubble-user-bg: linear-gradient(135deg, #B45309, #8A3E0B);
+    --bubble-user-text: #FFF6E8;
+
+    color-scheme: light;
+    font-size: 16px;
+  }
+
+  :root[data-theme="dark"]{
+    --bg: #0E1510;
+    --panel: #151E18;
+    --panel-2: #1B261F;
+    --panel-raised: #1B261F;
+    --line: #2C3A31;
+    --line-soft: #222E26;
+    --text: #ECEBE2;
+    --text-muted: #A3B3A7;
+    --text-dim: #7B8C80;
+    --gold: #F59E0B;
+    --gold-2: #FBBF24;
+    --gold-soft: rgba(245,158,11,0.15);
+    --mint: #34D399;
+    --mint-soft: rgba(52,211,153,0.15);
+    --red: #FF7A7A;
+    --red-soft: rgba(255,122,122,0.15);
+    --chip-bg: #1E2A22;
+    --chip-hover: #2E2814;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 14px 30px -14px rgba(0,0,0,0.7);
+
+    --header-bg: rgba(14,21,16,0.78);
+    --nav-bg: rgba(14,21,16,0.88);
+    --glow: rgba(245,158,11,0.08);
+
+    --bubble-bg: #1F2D24;
+    --bubble-border: #33443A;
+
+    color-scheme: dark;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(600px 340px at 50% -60px, var(--glow), transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+    letter-spacing: 0.1px;
+  }
+  .num{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 16px 20px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    border-bottom: 1px solid var(--line);
+    background: var(--header-bg);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    flex-shrink:0;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:0;
+  }
+  .brand-mark{
+    width:11px; height:11px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    display:inline-block;
+    border-radius: 3px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 0 5px var(--gold-soft), 0 0 14px -2px rgba(217,119,6,0.55);
+    flex-shrink:0;
+  }
+  .brand-name{
+    font-size: 16.5px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+  }
+  .header-right{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    flex-shrink:0;
+  }
+
+  .auth-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border:1px solid var(--line);
+    background:var(--chip-bg);
+    color:var(--text);
+    border-radius: var(--radius-pill);
+    padding:7px 12px;
+    font:500 12px 'IBM Plex Sans',sans-serif;
+    cursor:pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .auth-btn:hover{ border-color: var(--gold); background: var(--chip-hover); }
+
+  .sync-dot{
+    width:7px; height:7px; border-radius:50%; flex-shrink:0;
+  }
+  .sync-dot.synced{ background: var(--mint); box-shadow: 0 0 0 3px var(--mint-soft); }
+  .sync-dot.syncing{ background: var(--gold); animation: blink 1s infinite; }
+  .sync-dot.offline{ background: var(--text-dim); }
+  .sync-dot.disconnected{ background: var(--text-dim); }
+  .sync-dot.error{ background: var(--red); }
+
+  .install-btn{
+    display:none;
+    border:1px solid var(--line);
+    background:var(--chip-bg);
+    color:var(--text);
+    border-radius: var(--radius-pill);
+    padding:8px 12px;
+    font:500 12px 'IBM Plex Sans',sans-serif;
+    cursor:pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .install-btn:hover{ border-color: var(--gold); background: var(--chip-hover); }
+  .install-btn.show{display:inline-flex;align-items:center;gap:6px;}
+  .offline-badge{
+    display:none;
+    align-items:center;
+    gap:5px;
+    font-size:11px;
+    color: var(--text-muted);
+    border:1px solid var(--line);
+    border-radius: var(--radius-pill);
+    padding:5px 9px 5px 7px;
+  }
+  .offline-badge::before{
+    content:"";
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--red);
+    flex-shrink:0;
+  }
+  .offline-badge.show{display:inline-flex;}
+
+  .theme-toggle{
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: var(--chip-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .theme-toggle:hover{ border-color: var(--gold); background: var(--chip-hover); color: var(--text); }
+  .theme-toggle:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
+  .theme-toggle svg{
+    display: none;
+    width: 18px; height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  :root:not([data-theme="dark"]) .theme-toggle .icon-moon{ display: block; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun{ display: block; }
+
+  @media (max-width:560px){
+    header{padding:12px 14px; padding-top: max(12px, env(safe-area-inset-top));}
+    .header-right{gap:7px;}
+    .auth-btn{padding:6px 9px;}
+  }
+  .balance-stat{
+    text-align:right;
+    line-height:1.1;
+  }
+  .balance-stat .amt{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 20px;
+    font-weight:700;
+    letter-spacing: -0.3px;
+    color: var(--mint);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    padding: 4px 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .balance-stat .lbl{
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-dim);
+    margin-top:3px;
+  }
+
+  .bottom-nav{
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    display:flex;
+    gap: 6px;
+    padding: 7px max(14px, env(safe-area-inset-right)) max(7px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+    background: var(--nav-bg);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-top: 1px solid var(--line);
+    flex-shrink:0;
+  }
+  .nav-btn{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-dim);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 7px 4px 8px;
+    cursor:pointer;
+    transition: color .15s, background .15s;
+  }
+  .nav-btn svg{ width:21px; height:21px; stroke: currentColor; }
+  .nav-btn:hover{ color: var(--text-muted); }
+  .nav-btn.active{
+    color: var(--text);
+    background: var(--chip-bg);
+  }
+  .nav-btn.active svg{ stroke: var(--gold); }
+
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    max-width: 640px;
+    width:100%;
+    margin: 0 auto;
+    min-height:0;
+  }
+
+  #chat-view{
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    min-height:0;
+  }
+  #chat-log{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 22px 20px 18px 20px;
+    display:flex;
+    flex-direction:column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .msg-row{
+    display:flex;
+    flex-direction:column;
+    max-width: 84%;
+    animation: rise .22s ease both;
+  }
+  @keyframes rise{ from{ opacity:0; transform: translateY(6px); } to{ opacity:1; transform:none; } }
+  .msg-row.bot{ align-self:flex-start; }
+  .msg-row.user{ align-self:flex-end; align-items:flex-end; }
+
+  .msg-sender{
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    padding: 0 3px;
+  }
+  .msg-row.user .msg-sender{ text-align:right; }
+
+  .bubble{
+    padding: 11px 14px;
+    font-size: 14.5px;
+    line-height:1.55;
+    background: var(--bubble-bg);
+    color: var(--bubble-text);
+    border: 1px solid var(--bubble-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .msg-row.bot .bubble{ border-bottom-left-radius: 4px; }
+  .msg-row.user .bubble{
+    background: var(--bubble-user-bg);
+    color: var(--bubble-user-text);
+    border-color: transparent;
+    border-bottom-right-radius: 4px;
+  }
+  .bubble b{ font-weight: 700; }
+  .bubble .highlight-amt{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    color: #4ADE94;
+  }
+  .bubble .highlight-amt.neg{ color: #FF8A80; }
+
+  .confirm-card{
+    padding: 14px 16px;
+    background: var(--bubble-bg);
+    color: var(--bubble-text);
+    border: 1px solid var(--bubble-border);
+    border-radius: var(--radius-lg);
+    font-size: 13.5px;
+    line-height: 1.6;
+    box-shadow: var(--shadow-md);
+    width: 100%;
+    min-width: 240px;
+  }
+  .confirm-card .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.09);
+  }
+  .confirm-card .row:last-child{ border-bottom:none; padding-bottom:0; }
+  .confirm-card .row:first-child{ padding-top:0; }
+  .confirm-card .row .k{ color: var(--bubble-muted); font-size:12.5px; }
+  .confirm-card .row .v{ font-family:'IBM Plex Mono', monospace; font-weight:600; color: var(--bubble-text); }
+
+  .choices{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 0 3px;
+  }
+  .chip{
+    background: var(--chip-bg);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 13.5px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    cursor:pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .chip:hover{
+    background: var(--chip-hover);
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(217,119,6,0.15);
+  }
+  .chip:active{ transform: scale(0.97); }
+  .chip.chosen{
+    background: transparent;
+    border-color: var(--line-soft);
+    color: var(--text-dim);
+    cursor:default;
+  }
+  .chip.danger{ color: var(--red); border-color: rgba(225,29,46,0.45); }
+  .chip.primary{
+    border-color: transparent;
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color: #1A1206;
+    font-weight: 700;
+  }
+
+  .back-chip{
+    margin-top: 8px;
+    color: var(--text-dim);
+    border-color: transparent;
+    background: transparent;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .msg-row.wide{ max-width: 100%; align-self: stretch; }
+
+  .input-row{
+    display:flex;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 0 2px;
+  }
+  .input-row input{
+    flex:1;
+    min-width: 0;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-family: 'IBM Plex Mono', monospace;
+    outline:none;
+  }
+  .input-row input:focus{ border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .input-row button.send{
+    background: linear-gradient(135deg, var(--gold), var(--gold-2));
+    color:#1A1206;
+    border:none;
+    padding:0 18px;
+    border-radius:var(--radius-md);
+    font-size:13.5px;
+    font-weight:700;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .quick-examples{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:2px;
+    padding:0 3px;
+  }
+  .quick-example{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text-muted);
+    padding: 7px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 12.5px;
+    font-family: 'IBM Plex Mono', monospace;
+    cursor:pointer;
+  }
+
+  .typing{
+    display:flex;
+    gap:4px;
+    padding: 10px 13px;
+    align-self:flex-start;
+    background: var(--bubble-bg);
+    border: 1px solid var(--bubble-border);
+    border-radius: var(--radius-md);
+    width: fit-content;
+  }
+  .typing span{
+    width:5px; height:5px;
+    background: var(--bubble-muted);
+    border-radius:50%;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){ animation-delay: 0.2s; }
+  .typing span:nth-child(3){ animation-delay: 0.4s; }
+  @keyframes blink{ 0%,80%,100%{opacity:0.25;} 40%{opacity:1;} }
+
+  #summary-view{
+    display:none;
+    flex:1;
+    overflow-y:auto;
+    padding: 22px 20px 28px 20px;
+  }
+  .summary-subnav{
+    display:flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-pill);
+    padding: 4px;
+  }
+  .subnav-btn{
+    flex:1;
+    background: transparent;
+    border:none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 6px;
+    border-radius: var(--radius-pill);
+    cursor:pointer;
+  }
+  .subnav-btn.active{
+    background: var(--chip-hover);
+    color: var(--text);
+  }
+  .summary-section{ margin-bottom: 26px; }
+  .summary-section h2{
+    font-size: 12px;
+    font-weight:600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin: 0 0 12px 0;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .stat-box{
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-top: 2px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 13px 14px;
+  }
+  .stat-box.accent-income{ border-top-color: var(--mint); }
+  .stat-box.accent-expense{ border-top-color: var(--red); }
+  .stat-box.accent-net{ border-top-color: var(--gold); }
+  .stat-box .v{ font-size: 18px; font-weight:700; font-family:'IBM Plex Mono', monospace; }
+  .stat-box .v.income{ color: var(--mint); }
+  .stat-box .v.expense{ color: var(--red); }
+  .stat-box .l{ font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .cat-row{ display:flex; align-items:center; gap: 10px; margin-bottom: 11px; font-size: 13px; }
+  .cat-row .cat-name{ width: 120px; flex-shrink:0; color: var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cat-row .cat-bar-track{ flex:1; height: 7px; background: var(--line-soft); border-radius: var(--radius-pill); overflow:hidden; }
+  .cat-row .cat-bar-fill{ height:100%; background: linear-gradient(90deg, var(--gold), var(--gold-2)); border-radius: var(--radius-pill); }
+  .cat-row .cat-amt{ width: 76px; text-align:right; font-family:'IBM Plex Mono', monospace; flex-shrink:0; }
+
+  .txn-item{ display:flex; align-items:center; justify-content:space-between; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px; }
+  .txn-left{ display:flex; align-items:center; gap:11px; min-width:0; }
+  .txn-dot{ width: 9px; height: 9px; border-radius:50%; flex-shrink:0; background: var(--red); }
+  .txn-dot.income{ background: var(--mint); }
+  .txn-main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .txn-cat{ font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .txn-meta{ font-size: 11.5px; color: var(--text-dim); }
+  .txn-amt{ font-family:'IBM Plex Mono', monospace; font-weight:700; }
+  .txn-amt.income{ color: var(--mint); }
+  .txn-amt.expense{ color: var(--red); }
+  .txn-del{ background:none; border:none; color: var(--text-dim); cursor:pointer; font-size: 15px; padding: 4px; }
+
+  .empty-note{ color: var(--text-dim); font-size: 13px; padding: 6px 0; }
+  .data-action{
+    background:var(--chip-bg); border:1px solid var(--line); color:var(--text);
+    padding:8px 12px; border-radius:var(--radius-md); cursor:pointer; font-size:12.5px;
+  }
+  .data-action:hover{ border-color:var(--gold); }
+  .data-action.primary{ background:linear-gradient(135deg, var(--gold), var(--gold-2)); color:#1A1206; font-weight:600; border-color:transparent; }
+
+  .backup-notice{
+    margin: 10px 14px 0;
+    padding: 11px 12px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--gold);
+    border-radius: var(--radius-md);
+    background: var(--panel);
+    font-size: 12.5px;
+  }
+  .backup-notice-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .backup-notice button{ border:1px solid var(--line); background:var(--chip-bg); color:var(--text); border-radius:var(--radius-pill); padding:5px 8px; font-size:11px; cursor:pointer; }
+  .backup-notice .notice-dismiss{ border-color:transparent; background:transparent; color:var(--text-muted); }
+
+  /* Auth / Cloud Sync Modal */
+  .modal-backdrop{
+    position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(14,21,16,0.6); backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center; padding:16px; z-index:100;
+  }
+  .modal-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-lg);
+    max-width:440px; width:100%; padding:22px; box-shadow:var(--shadow-md);
+  }
+  .modal-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .modal-header h3{ margin:0; font-size:16px; font-weight:600; }
+  .modal-close-btn{ background:none; border:none; font-size:16px; color:var(--text-dim); cursor:pointer; }
+  .auth-tabs{ display:flex; gap:4px; background:var(--panel-2); border:1px solid var(--line-soft); border-radius:var(--radius-pill); padding:3px; margin-bottom:14px; }
+  .auth-tab-btn{ flex:1; background:transparent; border:none; color:var(--text-muted); font-size:12px; padding:6px 8px; border-radius:var(--radius-pill); cursor:pointer; }
+  .auth-tab-btn.active{ background:var(--panel); color:var(--text); box-shadow:var(--shadow-sm); }
+  .form-group{ margin-bottom:12px; }
+  .form-group label{ display:block; font-size:12px; color:var(--text-muted); margin-bottom:5px; }
+  .form-group input{ width:100%; box-sizing:border-box; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); padding:10px 12px; font-size:14px; outline:none; }
+  .auth-submit-btn{ width:100%; background:linear-gradient(135deg, var(--gold), var(--gold-2)); color:#1A1206; border:none; border-radius:var(--radius-md); padding:11px; font-weight:600; cursor:pointer; margin-top:8px; }
+  .auth-msg{ margin:10px 0; padding:8px 10px; border-radius:var(--radius-sm); font-size:12px; background:var(--mint-soft); color:var(--mint); }
+  .auth-msg.error{ background:var(--red-soft); color:var(--red); }
+  .auth-status-box{ background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px; }
+  .auth-hint{ font-size:12px; color:var(--text-dim); margin-bottom:12px; line-height:1.4; }
+  .search-controls{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px; }
+  .search-controls input, .search-controls select{ width:100%; box-sizing:border-box; background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:var(--radius-md); padding:8px 10px; font-size:13px; }
+  .search-result{ display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line-soft); align-items:center; }
+</style>
 </head>
 <body>
 
@@ -38,9 +672,7 @@
       <span id="sync-dot" class="sync-dot disconnected"></span>
       <span id="auth-btn-label" class="txt">Sync</span>
     </button>
-    <span id="offline-badge" class="offline-badge"><span class="txt">Offline</span></span>
-    <button id="install-btn" class="install-btn" type="button" aria-label="Install Ledger">＋<span class="txt"> Install</span></button>
-    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
       <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg>
       <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
     </button>
@@ -55,10 +687,10 @@
   <div id="chat-view">
     <div id="backup-notice" class="backup-notice" style="display:none;" role="status">
       <div class="backup-notice-row">
-        <div><strong>Your data is stored on this device.</strong><br>Sign in to sync automatically with Supabase or export a manual backup.</div>
+        <div><strong>Your data is stored on this device.</strong><br>Sign in with Supabase to sync automatically across all your devices.</div>
         <div class="notice-actions">
           <button id="backup-notice-export" type="button">Export</button>
-          <button id="backup-notice-dismiss" class="notice-dismiss" type="button" aria-label="Dismiss backup notice">Dismiss</button>
+          <button id="backup-notice-dismiss" class="notice-dismiss" type="button">Dismiss</button>
         </div>
       </div>
     </div>
@@ -81,95 +713,636 @@
   </button>
 </nav>
 
-<!-- Account & Supabase Cloud Sync Modal -->
+<!-- Cloud Sync & Account Modal -->
 <div id="auth-modal" class="modal-backdrop" style="display:none;">
   <div class="modal-card">
     <div class="modal-header">
       <h3 id="modal-title">Cloud Sync & Account</h3>
-      <button id="modal-close" class="modal-close-btn" type="button" aria-label="Close modal">✕</button>
+      <button id="modal-close" class="modal-close-btn" type="button">✕</button>
     </div>
 
-    <!-- Authenticated View -->
+    <!-- Signed-In View -->
     <div id="auth-user-view" style="display:none;">
       <div class="auth-status-box">
-        <div class="auth-status-email" id="auth-user-email">user@example.com</div>
-        <div class="auth-status-desc" id="auth-sync-status">🟢 Synced with Supabase</div>
+        <div style="font-weight:600;font-size:14px;" id="auth-user-email">user@example.com</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;" id="auth-sync-status">🟢 Synced with Supabase</div>
       </div>
-      <div class="modal-actions" style="margin-top:16px;">
+      <div style="display:flex;gap:8px;margin-top:14px;">
         <button id="auth-sync-now-btn" class="data-action primary" type="button">Sync Now</button>
-        <button id="auth-signout-btn" class="data-action danger" type="button">Sign Out</button>
+        <button id="auth-signout-btn" class="data-action" type="button">Sign Out</button>
       </div>
     </div>
 
-    <!-- Unauthenticated View -->
+    <!-- Guest / Sign In View -->
     <div id="auth-guest-view">
       <div class="auth-tabs">
         <button class="auth-tab-btn active" data-tab="signin" type="button">Sign In</button>
         <button class="auth-tab-btn" data-tab="signup" type="button">Sign Up</button>
         <button class="auth-tab-btn" data-tab="magic" type="button">Magic Link</button>
-        <button class="auth-tab-btn" data-tab="config" type="button">Supabase Config</button>
+        <button class="auth-tab-btn" data-tab="config" type="button">Supabase</button>
       </div>
 
-      <!-- Sign In Tab -->
       <form id="form-signin" class="auth-tab-panel">
         <div class="form-group">
-          <label for="signin-email">Email</label>
-          <input id="signin-email" type="email" required placeholder="you@example.com" autocomplete="email">
+          <label>Email</label>
+          <input id="signin-email" type="email" required placeholder="you@example.com">
         </div>
         <div class="form-group">
-          <label for="signin-password">Password</label>
-          <input id="signin-password" type="password" required placeholder="••••••••" autocomplete="current-password">
+          <label>Password</label>
+          <input id="signin-password" type="password" required placeholder="••••••••">
         </div>
         <div id="signin-error" class="auth-msg error" style="display:none;"></div>
         <button class="auth-submit-btn" type="submit">Sign In</button>
       </form>
 
-      <!-- Sign Up Tab -->
       <form id="form-signup" class="auth-tab-panel" style="display:none;">
         <div class="form-group">
-          <label for="signup-email">Email</label>
-          <input id="signup-email" type="email" required placeholder="you@example.com" autocomplete="email">
+          <label>Email</label>
+          <input id="signup-email" type="email" required placeholder="you@example.com">
         </div>
         <div class="form-group">
-          <label for="signup-password">Password (min 6 characters)</label>
-          <input id="signup-password" type="password" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+          <label>Password (min 6 characters)</label>
+          <input id="signup-password" type="password" required minlength="6" placeholder="••••••••">
         </div>
         <div id="signup-msg" class="auth-msg" style="display:none;"></div>
         <button class="auth-submit-btn" type="submit">Create Account</button>
       </form>
 
-      <!-- Magic Link Tab -->
       <form id="form-magic" class="auth-tab-panel" style="display:none;">
-        <p class="auth-hint">Enter your email and we'll send a passwordless sign-in link.</p>
+        <p class="auth-hint">Enter your email and we'll send a passwordless login link.</p>
         <div class="form-group">
-          <label for="magic-email">Email</label>
-          <input id="magic-email" type="email" required placeholder="you@example.com" autocomplete="email">
+          <label>Email</label>
+          <input id="magic-email" type="email" required placeholder="you@example.com">
         </div>
         <div id="magic-msg" class="auth-msg" style="display:none;"></div>
         <button class="auth-submit-btn" type="submit">Send Magic Link</button>
       </form>
 
-      <!-- Supabase In-App Config Tab -->
       <div id="form-config" class="auth-tab-panel" style="display:none;">
-        <p class="auth-hint">Connect your Supabase project directly in the browser, or set <code>VITE_SUPABASE_URL</code> in Vercel.</p>
+        <p class="auth-hint">Connect your Supabase project directly in the browser, or set it via Vercel.</p>
         <div class="form-group">
-          <label for="cfg-url">Supabase Project URL</label>
-          <input id="cfg-url" type="url" placeholder="https://xyz.supabase.co">
+          <label>Supabase Project URL</label>
+          <input id="cfg-url" type="url" placeholder="https://ggjykvmrrviytajbwhwo.supabase.co">
         </div>
         <div class="form-group">
-          <label for="cfg-key">Supabase Anon Key</label>
+          <label>Supabase Anon Key</label>
           <input id="cfg-key" type="password" placeholder="eyJhbGciOi...">
         </div>
         <div id="cfg-msg" class="auth-msg" style="display:none;"></div>
         <div style="display:flex;gap:8px;">
           <button id="cfg-save-btn" class="auth-submit-btn" type="button">Save Credentials</button>
-          <button id="cfg-clear-btn" class="data-action" type="button" style="margin-top:12px;">Clear</button>
+          <button id="cfg-clear-btn" class="data-action" type="button" style="margin-top:8px;">Clear</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<script type="module" src="/src/main.js"></script>
+<script>
+(function(){
+  // --- Supabase Client Setup ---
+  const CONFIG_KEY = 'ledger:supabase_config';
+  function getSupabaseConfig(){
+    try {
+      const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
+      if(saved.url && saved.anonKey) return saved;
+    } catch(e){}
+    return { url: '', anonKey: '' };
+  }
+
+  let supabase = null;
+  function initSupabase(){
+    const cfg = getSupabaseConfig();
+    if(cfg.url && cfg.anonKey && window.supabase){
+      try {
+        supabase = window.supabase.createClient(cfg.url, cfg.anonKey);
+      } catch(e){
+        console.warn("Could not create Supabase client:", e);
+      }
+    }
+  }
+  initSupabase();
+
+  let currentUser = null;
+
+  // --- Constants & Data Storage ---
+  const EXPENSE_CATEGORIES = ["Food","Housing","Utilities","Groceries","Transportation","Dining Out","Entertainment","Health & Fitness","Shopping","Travel","Insurance","Subscriptions","Education","Personal Care","Gifts & Donations","Debt Payment","Savings & Investments","Other"];
+  const INCOME_CATEGORIES = ["Salary","Freelance","Business","Investment","Gift","Refund","Other"];
+  const PAYMENT_METHODS = ["Cash","Credit Card","Debit Card","UPI","Net Banking","Wallet","Other"];
+
+  const STORAGE_KEY = "ledger:transactions";
+  const CUSTOM_CATEGORIES_KEY = "ledger:custom-categories";
+  const MERCHANT_MEMORY_KEY = "ledger:merchant-memory";
+  const APP_STATE_KEY = "ledger:app-state:v1";
+  const RECURRING_KEY = "ledger:recurring:v1";
+  const BUDGETS_KEY = "ledger:budgets:v1";
+  const DELETED_RECURRING_KEY = "ledger:recurring:deleted:v1";
+
+  let customCategories = { Expense: [], Income: [] };
+  let merchantMemory = { Expense: {}, Income: {} };
+  let recurringRules = [];
+  let deletedRecurringKeys = [];
+  let budgets = { Expense: {} };
+  let transactions = [];
+
+  let draft = {};
+  let flowHistory = [];
+  let lastSavedTransactionId = null;
+  let activeSummaryTab = "overview";
+
+  const chatLog = document.getElementById("chat-log");
+  const summaryContent = document.getElementById("summary-content");
+  const headerBalance = document.getElementById("header-balance");
+  const tabChat = document.getElementById("tab-chat");
+  const tabSummary = document.getElementById("tab-summary");
+  const chatViewEl = document.getElementById("chat-view");
+  const summaryViewEl = document.getElementById("summary-view");
+
+  function escapeHtml(s){
+    return String(s ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  const fmt = (n) => {
+    const sign = n < 0 ? "-" : "";
+    return sign + "₹" + Math.abs(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+
+  function capitalizeWords(s){ return String(s||"").replace(/\b\w/g, c => c.toUpperCase()); }
+  function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function shiftDate(days){ const d=new Date(); d.setDate(d.getDate()+days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+  function formatDisplayDate(date){ if(!date) return ""; return new Date(date + "T00:00:00").toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }
+  function relativeDateLabel(k){ if(k===todayISO()) return "today"; if(k===shiftDate(-1)) return "yesterday"; return formatDisplayDate(k); }
+  function txnDateKey(t){ return String(t.date||"").split("T")[0]; }
+  function currentMonthKey(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+  function monthName(){ return new Date().toLocaleDateString(undefined,{month:"long",year:"numeric"}); }
+
+  function getCategories(type){
+    const base = type === "Expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+    return [...new Set([...base, ...(customCategories[type] || [])])];
+  }
+
+  function getIncome(){ return transactions.filter(t=>t.type==="Income").reduce((s,t)=>s+t.amount,0); }
+  function getExpense(){ return transactions.filter(t=>t.type==="Expense").reduce((s,t)=>s+t.amount,0); }
+  function getNet(){ return getIncome() - getExpense(); }
+
+  function renderBalance(){
+    const net = getNet();
+    headerBalance.textContent = fmt(net);
+    headerBalance.style.color = net >= 0 ? "var(--mint)" : "var(--red)";
+  }
+
+  function saveAppState(){
+    try{
+      localStorage.setItem(APP_STATE_KEY, JSON.stringify({
+        version:2, transactions, customCategories, merchantMemory, recurringRules, budgets, deletedRecurringKeys
+      }));
+    }catch(e){}
+    syncPushSettings();
+  }
+
+  function loadAppState(){
+    try{
+      const saved = localStorage.getItem(APP_STATE_KEY);
+      if(saved){
+        const parsed = JSON.parse(saved);
+        if(Array.isArray(parsed.transactions)) transactions = parsed.transactions;
+        if(parsed.customCategories) customCategories = parsed.customCategories;
+        if(parsed.merchantMemory) merchantMemory = parsed.merchantMemory;
+        if(Array.isArray(parsed.recurringRules)) recurringRules = parsed.recurringRules;
+        if(parsed.budgets) budgets = parsed.budgets;
+        if(Array.isArray(parsed.deletedRecurringKeys)) deletedRecurringKeys = parsed.deletedRecurringKeys;
+      }
+    }catch(e){}
+  }
+
+  function saveTransactions(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions)); saveAppState(); return true; }
+    catch(e){ return false; }
+  }
+
+  // --- Cloud Sync Implementation ---
+  async function syncPushTransaction(txn){
+    if(!supabase || !currentUser) return;
+    try {
+      await supabase.from('transactions').upsert({
+        id: txn.id,
+        user_id: currentUser.id,
+        type: txn.type,
+        category: txn.category,
+        merchant: txn.merchant || '',
+        amount: Number(txn.amount),
+        payment: txn.payment || 'Other',
+        note: txn.note || '',
+        date: txn.date || new Date().toISOString(),
+        recurring_key: txn.recurringKey || null,
+        updated_at: new Date().toISOString()
+      });
+      updateSyncStatusUI("synced");
+    } catch(e){ updateSyncStatusUI("error"); }
+  }
+
+  async function syncDeleteTransaction(id){
+    if(!supabase || !currentUser) return;
+    try {
+      await supabase.from('transactions').delete().eq('id', id).eq('user_id', currentUser.id);
+      updateSyncStatusUI("synced");
+    } catch(e){}
+  }
+
+  async function syncPushSettings(){
+    if(!supabase || !currentUser) return;
+    try {
+      await supabase.from('user_settings').upsert({
+        user_id: currentUser.id,
+        custom_categories: customCategories,
+        merchant_memory: merchantMemory,
+        recurring_rules: recurringRules,
+        deleted_recurring_keys: deletedRecurringKeys,
+        budgets: budgets,
+        updated_at: new Date().toISOString()
+      });
+      updateSyncStatusUI("synced");
+    } catch(e){}
+  }
+
+  async function syncPullAll(){
+    if(!supabase || !currentUser) return;
+    updateSyncStatusUI("syncing");
+    try {
+      const { data: remoteTxns } = await supabase.from('transactions').select('*').eq('user_id', currentUser.id);
+      const { data: remoteSettings } = await supabase.from('user_settings').select('*').eq('user_id', currentUser.id).maybeSingle();
+
+      if(remoteTxns && remoteTxns.length){
+        const remoteMap = new Map(remoteTxns.map(t=>[t.id, t]));
+        for(const loc of transactions){
+          if(!remoteMap.has(loc.id)){
+            syncPushTransaction(loc);
+          }
+        }
+        transactions = remoteTxns.map(r=>({
+          id: r.id, type: r.type, category: r.category, merchant: r.merchant||'',
+          amount: Number(r.amount), payment: r.payment||'Other', note: r.note||'',
+          date: r.date, recurringKey: r.recurring_key||null
+        }));
+      } else if(transactions.length){
+        transactions.forEach(t=>syncPushTransaction(t));
+      }
+
+      if(remoteSettings){
+        if(remoteSettings.custom_categories) customCategories = remoteSettings.custom_categories;
+        if(remoteSettings.merchant_memory) merchantMemory = remoteSettings.merchant_memory;
+        if(remoteSettings.recurring_rules) recurringRules = remoteSettings.recurring_rules;
+        if(remoteSettings.budgets) budgets = remoteSettings.budgets;
+      } else {
+        syncPushSettings();
+      }
+
+      saveAppState();
+      renderBalance();
+      if(summaryViewEl.style.display !== "none") renderSummary();
+      updateSyncStatusUI("synced");
+    } catch(e){
+      console.warn("Pull sync failed:", e);
+      updateSyncStatusUI("error");
+    }
+  }
+
+  // --- NLP & Parsing ---
+  const MERCHANT_RULES = {
+    "chips": ["Food"], "swiggy": ["Food"], "zomato": ["Food"], "uber": ["Transportation"],
+    "ola": ["Transportation"], "petrol": ["Transportation"], "fuel": ["Transportation"],
+    "netflix": ["Subscriptions"], "amazon": ["Shopping"], "salary": ["Salary"],
+    "freelance": ["Freelance"], "refund": ["Refund"], "rent": ["Housing"], "coffee": ["Food"]
+  };
+
+  function normalizeQuickText(text){ return String(text||"").replace(/\s+/g," ").trim(); }
+
+  function parseAmount(text){
+    let cleaned = normalizeQuickText(text).toLowerCase().replace(/,/g,"");
+    const m = cleaned.match(/(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?)?\b/i);
+    if(!m) return null;
+    let n = parseFloat(m[1]);
+    const s = (m[2]||"").toLowerCase();
+    if(s === "k" || s === "thousand") n *= 1000;
+    if(s.startsWith("lakh") || s.startsWith("lac")) n *= 100000;
+    return n > 0 ? n : null;
+  }
+
+  function parseDate(text){
+    const lower = normalizeQuickText(text).toLowerCase();
+    let m = lower.match(/\b(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})\b/);
+    if(m){ const d=new Date(m[1], m[2]-1, m[3]); if(d.getDate()==m[3]) return `${m[1]}-${String(m[2]).padStart(2,"0")}-${String(m[3]).padStart(2,"0")}`; }
+    if(/\byesterday\b/.test(lower)) return shiftDate(-1);
+    if(/\btoday\b/.test(lower)) return shiftDate(0);
+
+    m = lower.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+    if(m){
+      const day=parseInt(m[1],10), month=parseInt(m[2],10);
+      let year=m[3]?parseInt(m[3],10):new Date().getFullYear();
+      if(year<100) year+=2000;
+      if(month>=1 && month<=12 && day>=1 && day<=31){
+        const d=new Date(year, month-1, day);
+        if(d.getDate()==day) return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+      }
+    }
+    return null;
+  }
+
+  function parseQuickEntry(text){
+    let cleaned = normalizeQuickText(text).toLowerCase();
+    let amount = parseAmount(cleaned);
+    let date = parseDate(cleaned) || todayISO();
+    let type = /\b(salary|freelance|income|received|refund)\b/.test(cleaned) ? "Income" : "Expense";
+    let merchant = cleaned.replace(/₹?\d[\d,]*(?:\.\d+)?\s*(?:k|thousand|lakhs?)?\b/gi,"").replace(/\b(yesterday|today|on|for|spent|paid)\b/gi,"").trim();
+    let category = null;
+    for(const [mKey, cats] of Object.entries(MERCHANT_RULES)){
+      if(cleaned.includes(mKey)){ merchant = mKey; category = cats[0]; break; }
+    }
+    if(!category && merchantMemory[type]?.[merchant]) category = merchantMemory[type][merchant];
+    return { amount, date, type, merchant, category };
+  }
+
+  // --- UI Messages & Quick Entry ---
+  function addBotMessage(html){
+    const row = document.createElement("div"); row.className = "msg-row bot";
+    row.innerHTML = `<div class="msg-sender">Ledger</div><div class="bubble">${html}</div>`;
+    chatLog.appendChild(row); chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function addUserMessage(text){
+    const row = document.createElement("div"); row.className = "msg-row user";
+    row.innerHTML = `<div class="msg-sender">You</div><div class="bubble">${escapeHtml(text)}</div>`;
+    chatLog.appendChild(row); chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function renderQuickInput(){
+    const row = document.createElement("div"); row.className = "msg-row bot wide";
+    row.innerHTML = `
+      <div class="input-row">
+        <input type="text" placeholder='e.g. "chips 20", "uber 250 yesterday", or "salary 45k"'>
+        <button class="send">Log</button>
+      </div>`;
+    const input = row.querySelector("input"), btn = row.querySelector("button");
+    function submit(){
+      const val = input.value.trim(); if(!val) return;
+      input.disabled = true; btn.disabled = true;
+      addUserMessage(val);
+      handleInput(val);
+    }
+    input.onkeydown = e => { if(e.key === "Enter") submit(); };
+    btn.onclick = submit;
+    chatLog.appendChild(row); chatLog.scrollTop = chatLog.scrollHeight;
+    input.focus();
+  }
+
+  function handleInput(text){
+    const parsed = parseQuickEntry(text);
+    if(!parsed.amount){
+      addBotMessage("I couldn't find an amount. How much was it?");
+      renderQuickInput();
+      return;
+    }
+    if(!parsed.category){
+      parsed.category = parsed.type === "Income" ? "Salary" : "Food";
+    }
+
+    const txn = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      type: parsed.type,
+      category: parsed.category,
+      merchant: parsed.merchant || parsed.category,
+      amount: parsed.amount,
+      payment: "UPI",
+      note: "",
+      date: parsed.date + "T00:00:00"
+    };
+
+    transactions.push(txn);
+    lastSavedTransactionId = txn.id;
+    saveTransactions();
+    renderBalance();
+    syncPushTransaction(txn);
+
+    addBotMessage(`Got it — <span class="highlight-amt">${fmt(txn.amount)}</span> logged for <b>${escapeHtml(txn.merchant)}</b>.`);
+    addBotMessage(`Current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
+    renderQuickInput();
+  }
+
+  // --- Views & Navigation ---
+  function switchView(view){
+    if(view === "chat"){
+      tabChat.classList.add("active"); tabSummary.classList.remove("active");
+      chatViewEl.style.display = "flex"; summaryViewEl.style.display = "none";
+      if(!chatLog.querySelector(".input-row input:not(:disabled)")) renderQuickInput();
+    } else {
+      tabSummary.classList.add("active"); tabChat.classList.remove("active");
+      chatViewEl.style.display = "none"; summaryViewEl.style.display = "block";
+      renderSummary();
+    }
+  }
+  tabChat.onclick = () => switchView("chat");
+  tabSummary.onclick = () => switchView("summary");
+
+  function renderSummary(){
+    const income = getIncome(), expense = getExpense(), net = income - expense;
+    summaryContent.innerHTML = `
+      <div class="summary-section">
+        <h2>Overview</h2>
+        <div class="stat-grid">
+          <div class="stat-box accent-income"><div class="v income">${fmt(income)}</div><div class="l">income</div></div>
+          <div class="stat-box accent-expense"><div class="v expense">${fmt(expense)}</div><div class="l">spent</div></div>
+          <div class="stat-box accent-net"><div class="v">${fmt(net)}</div><div class="l">net</div></div>
+        </div>
+      </div>
+      <div class="summary-section">
+        <h2>Recent Activity</h2>
+        ${transactions.length ? [...transactions].reverse().slice(0,10).map(t=>`
+          <div class="txn-item">
+            <div class="txn-left">
+              <span class="txn-dot ${t.type==='Income'?'income':''}"></span>
+              <div class="txn-main">
+                <span class="txn-cat">${escapeHtml(t.merchant||t.category)}</span>
+                <span class="txn-meta">${escapeHtml(t.category)} · ${formatDisplayDate(txnDateKey(t))}</span>
+              </div>
+            </div>
+            <span class="txn-amt ${t.type==='Income'?'income':'expense'}">${t.type==='Income'?'+':'-'}${fmt(t.amount)}</span>
+            <button class="txn-del" data-id="${escapeHtml(t.id)}">✕</button>
+          </div>
+        `).join("") : "<div class='empty-note'>No transactions yet.</div>"}
+      </div>
+    `;
+
+    summaryContent.querySelectorAll(".txn-del").forEach(btn=>{
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        transactions = transactions.filter(t=>t.id!==id);
+        saveTransactions();
+        renderBalance();
+        syncDeleteTransaction(id);
+        renderSummary();
+      };
+    });
+  }
+
+  // --- Auth & Modal Handlers ---
+  const authBtn = document.getElementById("auth-btn");
+  const authBtnLabel = document.getElementById("auth-btn-label");
+  const syncDot = document.getElementById("sync-dot");
+  const authModal = document.getElementById("auth-modal");
+  const modalClose = document.getElementById("modal-close");
+  const authUserView = document.getElementById("auth-user-view");
+  const authGuestView = document.getElementById("auth-guest-view");
+  const authUserEmail = document.getElementById("auth-user-email");
+  const authSyncStatus = document.getElementById("auth-sync-status");
+
+  function updateSyncStatusUI(status){
+    syncDot.className = "sync-dot " + status;
+    if(status === "synced") authBtnLabel.textContent = currentUser ? "Synced" : "Guest";
+    else if(status === "syncing") authBtnLabel.textContent = "Syncing…";
+    else if(status === "error") authBtnLabel.textContent = "Error";
+    else authBtnLabel.textContent = getSupabaseConfig().url ? "Sign In" : "Connect";
+  }
+
+  authBtn.onclick = () => {
+    if(currentUser){
+      authUserView.style.display = "block"; authGuestView.style.display = "none";
+      authUserEmail.textContent = currentUser.email || "Signed In";
+    } else {
+      authUserView.style.display = "none"; authGuestView.style.display = "block";
+    }
+    authModal.style.display = "flex";
+  };
+  modalClose.onclick = () => authModal.style.display = "none";
+
+  document.querySelectorAll(".auth-tab-btn").forEach(btn=>{
+    btn.onclick = () => {
+      document.querySelectorAll(".auth-tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".auth-tab-panel").forEach(p=>p.style.display = "none");
+      btn.classList.add("active");
+      const target = document.getElementById("form-" + btn.dataset.tab);
+      if(target) target.style.display = "block";
+    };
+  });
+
+  // Supabase In-App Config Save
+  const cfgUrl = document.getElementById("cfg-url"), cfgKey = document.getElementById("cfg-key"), cfgMsg = document.getElementById("cfg-msg");
+  const initial = getSupabaseConfig();
+  if(initial.url) cfgUrl.value = initial.url;
+  if(initial.anonKey) cfgKey.value = initial.anonKey;
+
+  document.getElementById("cfg-save-btn").onclick = () => {
+    const url = cfgUrl.value.trim(), key = cfgKey.value.trim();
+    if(!url || !key){
+      cfgMsg.className = "auth-msg error"; cfgMsg.textContent = "Please enter both URL and Anon Key."; cfgMsg.style.display = "block"; return;
+    }
+    localStorage.setItem(CONFIG_KEY, JSON.stringify({ url, anonKey: key }));
+    initSupabase();
+    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Supabase connected! You can now sign in or create an account."; cfgMsg.style.display = "block";
+    updateSyncStatusUI("disconnected");
+  };
+
+  document.getElementById("cfg-clear-btn").onclick = () => {
+    localStorage.removeItem(CONFIG_KEY);
+    supabase = null; cfgUrl.value = ""; cfgKey.value = "";
+    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Config cleared."; cfgMsg.style.display = "block";
+    updateSyncStatusUI("disconnected");
+  };
+
+  // Sign In Form
+  document.getElementById("form-signin").onsubmit = async (e) => {
+    e.preventDefault();
+    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    const email = document.getElementById("signin-email").value.trim();
+    const password = document.getElementById("signin-password").value;
+    const errEl = document.getElementById("signin-error");
+    errEl.style.display = "none";
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      currentUser = data.user;
+      authModal.style.display = "none";
+      await syncPullAll();
+    } catch(err){
+      errEl.textContent = err.message || "Sign in failed."; errEl.style.display = "block";
+    }
+  };
+
+  // Sign Up Form
+  document.getElementById("form-signup").onsubmit = async (e) => {
+    e.preventDefault();
+    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    const email = document.getElementById("signup-email").value.trim();
+    const password = document.getElementById("signup-password").value;
+    const msgEl = document.getElementById("signup-msg");
+    msgEl.style.display = "none";
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if(error) throw error;
+      msgEl.className = "auth-msg"; msgEl.textContent = "Account created! Check your email to verify."; msgEl.style.display = "block";
+    } catch(err){
+      msgEl.className = "auth-msg error"; msgEl.textContent = err.message || "Sign up failed."; msgEl.style.display = "block";
+    }
+  };
+
+  // Magic Link Form
+  document.getElementById("form-magic").onsubmit = async (e) => {
+    e.preventDefault();
+    if(!supabase){ alert("Please connect your Supabase project in the Supabase tab first."); return; }
+    const email = document.getElementById("magic-email").value.trim();
+    const msgEl = document.getElementById("magic-msg");
+    msgEl.style.display = "none";
+    try {
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } });
+      if(error) throw error;
+      msgEl.className = "auth-msg"; msgEl.textContent = "Magic link sent! Check your inbox."; msgEl.style.display = "block";
+    } catch(err){
+      msgEl.className = "auth-msg error"; msgEl.textContent = err.message || "Failed to send link."; msgEl.style.display = "block";
+    }
+  };
+
+  document.getElementById("auth-signout-btn").onclick = async () => {
+    if(supabase) await supabase.auth.signOut();
+    currentUser = null;
+    authModal.style.display = "none";
+    updateSyncStatusUI("disconnected");
+  };
+
+  document.getElementById("auth-sync-now-btn").onclick = async () => {
+    await syncPullAll();
+  };
+
+  // --- Theme Toggle ---
+  document.getElementById("theme-toggle").onclick = () => {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("ledger:theme", next);
+  };
+
+  // --- Initial Launch ---
+  async function init(){
+    loadAppState();
+    renderBalance();
+    if(supabase){
+      const { data: { session } } = await supabase.auth.getSession();
+      currentUser = session?.user || null;
+      if(currentUser){
+        updateSyncStatusUI("syncing");
+        await syncPullAll();
+      } else {
+        updateSyncStatusUI("disconnected");
+      }
+    } else {
+      updateSyncStatusUI("disconnected");
+    }
+
+    addBotMessage("Hi, I'm Ledger. Tell me what you spent or earned, in your own words — no forms needed.");
+    renderQuickInput();
+  }
+
+  init();
+})();
+</script>
 </body>
 </html>
