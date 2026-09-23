@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FAF9F5" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <script>
+    (function(){
+      var theme = "light";
+      try{
+        var saved = localStorage.getItem("ledger:theme");
+        if(saved === "light" || saved === "dark") theme = saved;
+        else if(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches) theme = "dark";
+      }catch(e){}
+      document.documentElement.setAttribute("data-theme", theme);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if(meta) meta.setAttribute("content", theme === "dark" ? "#0E1510" : "#FAF9F5");
+    })();
+  </script>
+<title>Ledger — your money, in plain English</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/style.css">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Ledger","short_name":"Ledger","start_url":"./","display":"standalone","background_color":"%23FAF9F5","theme_color":"%23FAF9F5","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22%3E%3Crect width=%22192%22 height=%22192%22 rx=%2240%22 fill=%22%23FAF9F5%22/%3E%3Crect x=%2276%22 y=%2276%22 width=%2240%22 height=%2240%22 rx=%228%22 fill=%22%23D97706%22 transform=%22rotate(45 96 96)%22/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"},{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect width=%22512%22 height=%22512%22 rx=%22100%22 fill=%22%23FAF9F5%22/%3E%3Crect x=%22206%22 y=%22206%22 width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%23D97706%22 transform=%22rotate(45 256 256)%22/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml"}]}' />
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-mark"></span>
+    <span class="brand-name">Ledger</span>
+  </div>
+  <div class="header-right">
+    <button id="auth-btn" class="auth-btn" type="button" aria-label="Account and Cloud Sync">
+      <span id="sync-dot" class="sync-dot disconnected"></span>
+      <span id="auth-btn-label" class="txt">Sync</span>
+    </button>
+    <span id="offline-badge" class="offline-badge"><span class="txt">Offline</span></span>
+    <button id="install-btn" class="install-btn" type="button" aria-label="Install Ledger">＋<span class="txt"> Install</span></button>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch to dark mode">
+      <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></svg>
+    </button>
+    <div class="balance-stat">
+      <div class="amt num" id="header-balance">₹0.00</div>
+      <div class="lbl">balance</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="chat-view">
+    <div id="backup-notice" class="backup-notice" style="display:none;" role="status">
+      <div class="backup-notice-row">
+        <div><strong>Your data is stored on this device.</strong><br>Sign in to sync automatically with Supabase or export a manual backup.</div>
+        <div class="notice-actions">
+          <button id="backup-notice-export" type="button">Export</button>
+          <button id="backup-notice-dismiss" class="notice-dismiss" type="button" aria-label="Dismiss backup notice">Dismiss</button>
+        </div>
+      </div>
+    </div>
+    <div id="chat-log"></div>
+  </div>
+
+  <div id="summary-view">
+    <div id="summary-content"></div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <button id="tab-chat" class="nav-btn active" type="button" aria-label="Chat">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-4.5 3.6a.5.5 0 0 1-.8-.4V16H5a2 2 0 0 1-2-2Z"/></svg>
+    Chat
+  </button>
+  <button id="tab-summary" class="nav-btn" type="button" aria-label="Summary">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+    Summary
+  </button>
+</nav>
+
+<!-- Account & Supabase Cloud Sync Modal -->
+<div id="auth-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="modal-title">Cloud Sync & Account</h3>
+      <button id="modal-close" class="modal-close-btn" type="button" aria-label="Close modal">✕</button>
+    </div>
+
+    <!-- Authenticated View -->
+    <div id="auth-user-view" style="display:none;">
+      <div class="auth-status-box">
+        <div class="auth-status-email" id="auth-user-email">user@example.com</div>
+        <div class="auth-status-desc" id="auth-sync-status">🟢 Synced with Supabase</div>
+      </div>
+      <div class="modal-actions" style="margin-top:16px;">
+        <button id="auth-sync-now-btn" class="data-action primary" type="button">Sync Now</button>
+        <button id="auth-signout-btn" class="data-action danger" type="button">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Unauthenticated View -->
+    <div id="auth-guest-view">
+      <div class="auth-tabs">
+        <button class="auth-tab-btn active" data-tab="signin" type="button">Sign In</button>
+        <button class="auth-tab-btn" data-tab="signup" type="button">Sign Up</button>
+        <button class="auth-tab-btn" data-tab="magic" type="button">Magic Link</button>
+        <button class="auth-tab-btn" data-tab="config" type="button">Supabase Config</button>
+      </div>
+
+      <!-- Sign In Tab -->
+      <form id="form-signin" class="auth-tab-panel">
+        <div class="form-group">
+          <label for="signin-email">Email</label>
+          <input id="signin-email" type="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="signin-password">Password</label>
+          <input id="signin-password" type="password" required placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div id="signin-error" class="auth-msg error" style="display:none;"></div>
+        <button class="auth-submit-btn" type="submit">Sign In</button>
+      </form>
+
+      <!-- Sign Up Tab -->
+      <form id="form-signup" class="auth-tab-panel" style="display:none;">
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input id="signup-email" type="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password (min 6 characters)</label>
+          <input id="signup-password" type="password" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+        </div>
+        <div id="signup-msg" class="auth-msg" style="display:none;"></div>
+        <button class="auth-submit-btn" type="submit">Create Account</button>
+      </form>
+
+      <!-- Magic Link Tab -->
+      <form id="form-magic" class="auth-tab-panel" style="display:none;">
+        <p class="auth-hint">Enter your email and we'll send a passwordless sign-in link.</p>
+        <div class="form-group">
+          <label for="magic-email">Email</label>
+          <input id="magic-email" type="email" required placeholder="you@example.com" autocomplete="email">
+        </div>
+        <div id="magic-msg" class="auth-msg" style="display:none;"></div>
+        <button class="auth-submit-btn" type="submit">Send Magic Link</button>
+      </form>
+
+      <!-- Supabase In-App Config Tab -->
+      <div id="form-config" class="auth-tab-panel" style="display:none;">
+        <p class="auth-hint">Connect your Supabase project directly in the browser, or set <code>VITE_SUPABASE_URL</code> in Vercel.</p>
+        <div class="form-group">
+          <label for="cfg-url">Supabase Project URL</label>
+          <input id="cfg-url" type="url" placeholder="https://xyz.supabase.co">
+        </div>
+        <div class="form-group">
+          <label for="cfg-key">Supabase Anon Key</label>
+          <input id="cfg-key" type="password" placeholder="eyJhbGciOi...">
+        </div>
+        <div id="cfg-msg" class="auth-msg" style="display:none;"></div>
+        <div style="display:flex;gap:8px;">
+          <button id="cfg-save-btn" class="auth-submit-btn" type="button">Save Credentials</button>
+          <button id="cfg-clear-btn" class="data-action" type="button" style="margin-top:12px;">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
