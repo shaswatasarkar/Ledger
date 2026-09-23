@@ -802,12 +802,15 @@
 (function(){
   // --- Supabase Client Setup ---
   const CONFIG_KEY = 'ledger:supabase_config';
+  const DEFAULT_SUPABASE_URL = 'https://ggjykvmrrviytajbwhwo.supabase.co';
+  const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdnanlrdm1ycnZpeXRhamJ3aHdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNzMzOTAsImV4cCI6MjEwNTc0OTM5MH0.7G_1fWSV3SSa3rY5k7uUDO9MP4tdRh_c4SOeQeGULs0';
+
   function getSupabaseConfig(){
     try {
       const saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || '{}');
       if(saved.url && saved.anonKey) return saved;
     } catch(e){}
-    return { url: '', anonKey: '' };
+    return { url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_ANON_KEY };
   }
 
   let supabase = null;
@@ -1245,8 +1248,10 @@
 
   document.getElementById("cfg-clear-btn").onclick = () => {
     localStorage.removeItem(CONFIG_KEY);
-    supabase = null; cfgUrl.value = ""; cfgKey.value = "";
-    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Config cleared."; cfgMsg.style.display = "block";
+    initSupabase();
+    const cfg = getSupabaseConfig();
+    cfgUrl.value = cfg.url; cfgKey.value = cfg.anonKey;
+    cfgMsg.className = "auth-msg"; cfgMsg.textContent = "Reset to default project credentials."; cfgMsg.style.display = "block";
     updateSyncStatusUI("disconnected");
   };
 
