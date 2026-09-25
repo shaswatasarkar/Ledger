@@ -486,6 +486,38 @@
     color:var(--bubble-muted);
     font-weight:500;
   }
+  .txn-type-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+    padding:3px 9px;
+    border-radius:var(--radius-pill);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:11.5px;
+    font-weight:700;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:all 0.15s;
+    user-select:none;
+  }
+  .txn-type-badge.expense{
+    background:rgba(225,29,46,0.18);
+    border-color:rgba(225,29,46,0.35);
+    color:#FF7A7A;
+  }
+  .txn-type-badge.expense:hover{
+    background:rgba(225,29,46,0.3);
+    border-color:#FF7A7A;
+  }
+  .txn-type-badge.income{
+    background:rgba(52,211,153,0.18);
+    border-color:rgba(52,211,153,0.35);
+    color:#34D399;
+  }
+  .txn-type-badge.income:hover{
+    background:rgba(52,211,153,0.3);
+    border-color:#34D399;
+  }
   .txn-cat-badge{
     display:inline-flex;
     align-items:center;
@@ -1301,12 +1333,18 @@
     return null;
   }
 
+  function detectType(text){
+    const lower = normalizeQuickText(text).toLowerCase();
+    if(/\b(salary|stipend|freelance|bonus|income|received|receive|got|refund|cashback|dividend|interest|credited|earned|earning)\b/.test(lower)) return "Income";
+    if(/\b(spent|spend|paid|pay|bought|buy|expense|cost|purchase|purchased)\b/.test(lower)) return "Expense";
+    return null;
+  }
+
   function parseQuickEntry(text){
     let cleaned = normalizeQuickText(text).toLowerCase();
     let amount = parseAmount(cleaned);
     let date = parseDate(cleaned) || todayISO();
-    let isIncome = /\b(salary|stipend|freelance|bonus|income|received|receive|got|refund|cashback|dividend|interest|credited|earned|earning)\b/.test(cleaned);
-    let type = isIncome ? "Income" : "Expense";
+    let type = detectType(cleaned);
 
     // Safety check: remove any stale "mouse" -> "Food" bug in memory
     if(merchantMemory.Expense && merchantMemory.Expense.mouse === "Food"){
@@ -1328,23 +1366,38 @@
       if(new RegExp(`\\b${escaped}\\b`, "i").test(cleaned)){
         category = MERCHANT_RULES[mKey][0];
         matchedRuleKey = mKey;
+        if(!type){
+          type = INCOME_CATEGORIES.includes(category) ? "Income" : "Expense";
+        }
         break;
       }
     }
 
     // Check learned merchant memory
-    if(!category && merchant && merchantMemory[type]?.[merchant]){
-      category = merchantMemory[type][merchant];
+    if(merchant){
+      if(!type){
+        if(merchantMemory.Income?.[merchant]){
+          type = "Income";
+          category = merchantMemory.Income[merchant];
+        } else if(merchantMemory.Expense?.[merchant]){
+          type = "Expense";
+          category = merchantMemory.Expense[merchant];
+        }
+      } else {
+        if(!category && merchantMemory[type]?.[merchant]){
+          category = merchantMemory[type][merchant];
+        }
+      }
     }
 
     let isUncertain = false;
-    if(!category){
+    if(type && !category){
       isUncertain = true;
       category = type === "Income" ? "Salary" : "Other";
     }
 
     if(!merchant){
-      merchant = matchedRuleKey || category;
+      merchant = matchedRuleKey || category || "";
     }
 
     return { amount, date, type, merchant, category, isUncertain };
@@ -1363,11 +1416,33 @@
     chatLog.appendChild(row); chatLog.scrollTop = chatLog.scrollHeight;
   }
 
+  function addChoices(options){
+    const row = document.createElement("div");
+    row.className = "msg-row bot wide";
+    const wrap = document.createElement("div");
+    wrap.className = "choices";
+    options.forEach(opt => {
+      const chip = document.createElement("button");
+      chip.className = "chip" + (opt.primary ? " primary" : "") + (opt.danger ? " danger" : "");
+      chip.textContent = opt.label;
+      chip.onclick = () => {
+        Array.from(wrap.children).forEach(c => { c.disabled = true; if(c !== chip) c.classList.add("chosen"); });
+        chip.classList.add("chosen");
+        opt.onClick();
+      };
+      wrap.appendChild(chip);
+    });
+    row.appendChild(wrap);
+    chatLog.appendChild(row);
+    chatLog.scrollTop = chatLog.scrollHeight;
+    return row;
+  }
+
   function renderQuickInput(){
     const row = document.createElement("div"); row.className = "msg-row bot wide";
     row.innerHTML = `
       <div class="input-row">
-        <input type="text" placeholder='e.g. "mouse 600", "swiggy 350", "uber 250 yesterday", or "salary 45k"'>
+        <input type="text" placeholder='e.g. "500", "mouse 600", "swiggy 350", or "salary 45k"'>
         <button class="send">Log</button>
       </div>`;
     const input = row.querySelector("input"), btn = row.querySelector("button");
@@ -1436,6 +1511,48 @@
     }
   };
 
+  window.toggleTransactionType = function(txnId){
+    const txn = transactions.find(t => t.id === txnId);
+    if(!txn) return;
+    const oldType = txn.type;
+    const newType = oldType === "Expense" ? "Income" : "Expense";
+    txn.type = newType;
+
+    const newCats = getCategories(newType);
+    txn.category = newType === "Income" ? (newCats.includes("Other") ? "Other" : newCats[0]) : (newCats.includes("Other") ? "Other" : newCats[0]);
+
+    if(txn.merchant){
+      const mKey = txn.merchant.toLowerCase().trim();
+      if(!merchantMemory[newType]) merchantMemory[newType] = {};
+      merchantMemory[newType][mKey] = txn.category;
+    }
+
+    saveTransactions();
+    saveAppState();
+    syncPushTransaction(txn);
+    syncPushSettings();
+    renderBalance();
+    if(summaryViewEl.style.display !== "none") renderSummary();
+
+    const bubble = document.getElementById("txn-bubble-" + txnId);
+    if(bubble){
+      const headAmt = bubble.querySelector(".txn-card-head .highlight-amt");
+      if(headAmt){
+        headAmt.className = `highlight-amt ${newType === 'Income' ? '' : 'neg'}`;
+        headAmt.textContent = (newType === 'Income' ? '+' : '-') + fmt(txn.amount);
+      }
+      const typeBadge = bubble.querySelector(".txn-type-badge");
+      if(typeBadge){
+        typeBadge.className = `txn-type-badge ${newType.toLowerCase()}`;
+        typeBadge.textContent = newType === 'Income' ? '▲ Income' : '▼ Expense';
+      }
+      const catBadge = document.getElementById("cat-badge-" + txnId);
+      if(catBadge) catBadge.textContent = txn.category;
+
+      window.renderCategoryChips(txnId);
+    }
+  };
+
   window.undoSpecificTransaction = function(txnId){
     const idx = transactions.findIndex(t => t.id === txnId);
     if(idx === -1) return;
@@ -1471,6 +1588,67 @@
     addBotMessage(`Undone. Removed <b>${escapeHtml(name)}</b> (<span class="highlight-amt">${fmt(amt)}</span>).`);
   }
 
+  function saveTransactionAndConfirm(parsed){
+    // Remove any trailing empty input rows
+    const existingInputs = chatLog.querySelectorAll(".input-row input");
+    existingInputs.forEach(inp => {
+      if(!inp.disabled && !inp.value.trim()){
+        inp.closest(".msg-row")?.remove();
+      }
+    });
+
+    if(!parsed.category){
+      parsed.category = parsed.type === "Income" ? "Other" : "Other";
+      parsed.isUncertain = true;
+    }
+
+    const txn = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      type: parsed.type,
+      category: parsed.category,
+      merchant: parsed.merchant || (parsed.type === "Income" ? "Income" : "Expense"),
+      amount: parsed.amount,
+      payment: "UPI",
+      note: "",
+      date: (parsed.date || todayISO()) + "T00:00:00"
+    };
+
+    transactions.push(txn);
+    lastSavedTransactionId = txn.id;
+    saveTransactions();
+    renderBalance();
+    syncPushTransaction(txn);
+
+    const isInc = txn.type === "Income";
+    const cardHtml = `
+      <div class="txn-card-bubble" id="txn-bubble-${txn.id}">
+        <div class="txn-card-head">
+          Got it — <span class="highlight-amt ${isInc ? '' : 'neg'}">${isInc ? '+' : '-'}${fmt(txn.amount)}</span> logged for <b>${escapeHtml(capitalizeWords(txn.merchant))}</b>
+        </div>
+        <div class="txn-card-cat-line">
+          <button class="txn-type-badge ${txn.type.toLowerCase()}" type="button" onclick="window.toggleTransactionType('${txn.id}')" title="Tap to switch between Expense and Income">
+            ${isInc ? '▲ Income' : '▼ Expense'}
+          </button>
+          <button class="txn-cat-badge" type="button" onclick="window.toggleCategorySelector('${txn.id}')" title="Tap to change category">
+            <span class="cat-badge-text" id="cat-badge-${txn.id}">${escapeHtml(txn.category)}</span>
+            <span class="cat-badge-arrow">▾</span>
+          </button>
+          <button class="txn-undo-inline-btn" type="button" onclick="window.undoSpecificTransaction('${txn.id}')" title="Delete transaction">Undo</button>
+        </div>
+        <div class="txn-cat-selector-drawer" id="cat-drawer-${txn.id}" style="${parsed.isUncertain ? 'display:block;' : 'display:none;'}">
+          <div class="cat-drawer-title">${parsed.isUncertain ? 'Uncertain category — tap to set & remember:' : 'Change category:'}</div>
+          <div class="cat-chips-grid" id="cat-chips-${txn.id}"></div>
+        </div>
+      </div>
+    `;
+
+    addBotMessage(cardHtml);
+    window.renderCategoryChips(txn.id);
+
+    addBotMessage(`Current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
+    renderQuickInput();
+  }
+
   function handleInput(text){
     const trimmed = text.trim();
     const lower = trimmed.toLowerCase();
@@ -1491,7 +1669,24 @@
       return;
     }
 
-    // 2. Change Category commands (e.g. "change category to Shopping", "change mouse to Shopping")
+    // 2. Change Category / Type commands
+    const mChangeType = trimmed.match(/^change\s+(?:last\s+)?type\s+to\s+(expense|income)$/i);
+    if(mChangeType){
+      const wantedType = capitalizeWords(mChangeType[1]);
+      const lastTxn = lastSavedTransactionId ? transactions.find(t=>t.id===lastSavedTransactionId) : (transactions.length ? transactions[transactions.length-1] : null);
+      if(!lastTxn){
+        addBotMessage("There is no recent transaction to change.");
+        renderQuickInput();
+        return;
+      }
+      if(lastTxn.type !== wantedType){
+        window.toggleTransactionType(lastTxn.id);
+      }
+      addBotMessage(`Updated last transaction type to <b>${wantedType}</b>.`);
+      renderQuickInput();
+      return;
+    }
+
     const mChangeLast = trimmed.match(/^change\s+(?:last\s+)?category\s+to\s+(.+)$/i);
     if(mChangeLast){
       const req = mChangeLast[1].trim();
@@ -1509,7 +1704,7 @@
     }
 
     const mChangeMerch = trimmed.match(/^change\s+(.+?)\s+(?:category\s+)?to\s+(.+)$/i);
-    if(mChangeMerch && !lower.startsWith("change last ")){
+    if(mChangeMerch && !lower.startsWith("change last ") && !lower.startsWith("change type ")){
       const merch = mChangeMerch[1].trim().toLowerCase();
       const req = mChangeMerch[2].trim();
       const type = "Expense";
@@ -1543,48 +1738,30 @@
       return;
     }
 
-    const txn = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-      type: parsed.type,
-      category: parsed.category,
-      merchant: parsed.merchant || parsed.category,
-      amount: parsed.amount,
-      payment: "UPI",
-      note: "",
-      date: parsed.date + "T00:00:00"
-    };
+    if(!parsed.type){
+      // Ambiguous: ask if Expense or Income!
+      const who = parsed.merchant ? ` for <b>${escapeHtml(capitalizeWords(parsed.merchant))}</b>` : '';
+      addBotMessage(`Is <span class="highlight-amt">${fmt(parsed.amount)}</span>${who} an expense or income?`);
+      addChoices([
+        {
+          label: "Expense",
+          onClick: () => {
+            saveTransactionAndConfirm({ ...parsed, type: "Expense" });
+          }
+        },
+        {
+          label: "Income",
+          primary: true,
+          onClick: () => {
+            saveTransactionAndConfirm({ ...parsed, type: "Income" });
+          }
+        }
+      ]);
+      renderQuickInput();
+      return;
+    }
 
-    transactions.push(txn);
-    lastSavedTransactionId = txn.id;
-    saveTransactions();
-    renderBalance();
-    syncPushTransaction(txn);
-
-    const cardHtml = `
-      <div class="txn-card-bubble" id="txn-bubble-${txn.id}">
-        <div class="txn-card-head">
-          Got it — <span class="highlight-amt">${fmt(txn.amount)}</span> logged for <b>${escapeHtml(capitalizeWords(txn.merchant))}</b>
-        </div>
-        <div class="txn-card-cat-line">
-          <span class="txn-cat-label">Category:</span>
-          <button class="txn-cat-badge" type="button" onclick="window.toggleCategorySelector('${txn.id}')" title="Tap to change category">
-            <span class="cat-badge-text" id="cat-badge-${txn.id}">${escapeHtml(txn.category)}</span>
-            <span class="cat-badge-arrow">▾</span>
-          </button>
-          <button class="txn-undo-inline-btn" type="button" onclick="window.undoSpecificTransaction('${txn.id}')" title="Delete transaction">Undo</button>
-        </div>
-        <div class="txn-cat-selector-drawer" id="cat-drawer-${txn.id}" style="${parsed.isUncertain ? 'display:block;' : 'display:none;'}">
-          <div class="cat-drawer-title">${parsed.isUncertain ? 'Uncertain category — tap to set & remember:' : 'Change category:'}</div>
-          <div class="cat-chips-grid" id="cat-chips-${txn.id}"></div>
-        </div>
-      </div>
-    `;
-
-    addBotMessage(cardHtml);
-    window.renderCategoryChips(txn.id);
-
-    addBotMessage(`Current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
-    renderQuickInput();
+    saveTransactionAndConfirm(parsed);
   }
 
   // --- Views & Navigation ---
