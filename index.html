@@ -1199,7 +1199,7 @@
     if(!syncDot || !authBtnLabel) return;
     syncDot.className = "sync-dot " + status;
     if(status === "synced") authBtnLabel.textContent = currentUser ? "Synced" : "Guest";
-    else if(status === "syncing") authBtnLabel.textContent = "Syncingâ€¦";
+    else if(status === "syncing") authBtnLabel.textContent = "Syncing...";
     else if(status === "error") authBtnLabel.textContent = "Error";
     else authBtnLabel.textContent = currentUser ? "Synced" : "Sign In";
   }
@@ -2771,7 +2771,8 @@
   function discardEntry(){
     showTyping(() => {
       addBotMessage("Discarded. Starting over.");
-      startFlow();
+    setupAuthUI();
+    startFlow();
     });
   }
 
@@ -4525,7 +4526,52 @@
     document.getElementById("auth-sync-now-btn").onclick = async () => {
       await syncPullAll();
     };
+
+    // Close modal on backdrop click
+    authModal.onclick = (e) => {
+      if (e.target === authModal) {
+        authModal.style.display = "none";
+      }
+    };
+
+    // Listen to Supabase auth events & recover session
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session && session.user) {
+          currentUser = session.user;
+          updateSyncStatusUI("synced");
+          syncPullAll();
+        } else {
+          updateSyncStatusUI("disconnected");
+        }
+      }).catch(err => {
+        console.warn("Could not retrieve session:", err);
+      });
+
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("Supabase Auth Event:", event);
+        if (event === "PASSWORD_RECOVERY") {
+          const tabsNav = document.getElementById("auth-tabs-nav");
+          if (tabsNav) tabsNav.style.display = "none";
+          authUserView.style.display = "none";
+          authGuestView.style.display = "block";
+          document.querySelectorAll(".auth-tab-panel").forEach(p => p.style.display = "none");
+          document.getElementById("modal-title").textContent = "Set New Password";
+          document.getElementById("form-reset-password").style.display = "block";
+          authModal.style.display = "flex";
+        } else if (session && session.user) {
+          currentUser = session.user;
+          updateSyncStatusUI("synced");
+        } else {
+          currentUser = null;
+          updateSyncStatusUI("disconnected");
+        }
+      });
+    }
   }
+
+  // Immediately initialize Auth UI so Sync button is clickable
+  setupAuthUI();
 
   // ---------- init ----------
   async function init(){
