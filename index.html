@@ -1209,8 +1209,6 @@
   tabChat.onclick = () => switchView("chat");
   tabSummary.onclick = () => switchView("summary");
 
-  let activeSummaryTab = "overview";
-
   function exportBackupJSON(){
     const data = JSON.stringify({
       app: "Ledger",
