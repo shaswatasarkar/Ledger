@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -1288,6 +1288,7 @@
   function saveCustomCategories(){
     localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories));
     saveAppState();
+    if(typeof syncPushSettings === "function" && typeof currentUser !== "undefined" && currentUser) syncPushSettings();
   }
 
   function loadTrustedMerchantMemory(){
@@ -1302,11 +1303,13 @@
 
   function saveTrustedMerchantMemory(){
     try{ localStorage.setItem(TRUSTED_MERCHANT_MEMORY_KEY, JSON.stringify(trustedMerchantMemory)); }catch(e){}
+    if(typeof syncPushSettings === "function" && typeof currentUser !== "undefined" && currentUser) syncPushSettings();
   }
 
   function saveMerchantMemory(){
     localStorage.setItem(MERCHANT_MEMORY_KEY, JSON.stringify(merchantMemory));
     saveAppState();
+    if(typeof syncPushSettings === "function" && typeof currentUser !== "undefined" && currentUser) syncPushSettings();
   }
 
   function loadRecurringRules(){
@@ -1318,7 +1321,12 @@
   }
 
   function saveRecurringRules(){
-    try{ localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringRules)); saveAppState(); return true; }
+    try{
+      localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringRules));
+      saveAppState();
+      if(typeof syncPushSettings === "function" && typeof currentUser !== "undefined" && currentUser) syncPushSettings();
+      return true;
+    }
     catch(e){ console.warn("Could not save recurring rules",e); return false; }
   }
 
@@ -1331,7 +1339,12 @@
   }
 
   function saveBudgets(){
-    try{ localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets)); saveAppState(); return true; }
+    try{
+      localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets));
+      saveAppState();
+      if(typeof syncPushSettings === "function" && typeof currentUser !== "undefined" && currentUser) syncPushSettings();
+      return true;
+    }
     catch(e){ console.warn("Could not save budgets",e); return false; }
   }
 
@@ -1484,135 +1497,6 @@
   }
   initSupabase();
 
-  let currentUser = null;
-
-  function updateSyncStatusUI(status){
-    const syncDot = document.getElementById("sync-dot");
-    const authBtnLabel = document.getElementById("auth-btn-label");
-    if(!syncDot || !authBtnLabel) return;
-    syncDot.className = "sync-dot " + status;
-    if(status === "synced") authBtnLabel.textContent = currentUser ? "Synced" : "Guest";
-    else if(status === "syncing") authBtnLabel.textContent = "Syncing...";
-    else if(status === "error") authBtnLabel.textContent = "Error";
-    else authBtnLabel.textContent = currentUser ? "Synced" : "Sign In";
-  }
-
-  async function syncPushTransaction(txn){
-    if(!supabase || !currentUser) return;
-    try {
-      await supabase.from('transactions').upsert({
-        id: txn.id,
-        user_id: currentUser.id,
-        type: txn.type,
-        category: txn.category,
-        merchant: txn.merchant || '',
-        amount: Number(txn.amount),
-        payment: txn.payment || 'Other',
-        note: txn.note || '',
-        date: txn.date || new Date().toISOString(),
-        recurring_key: txn.recurringKey || null,
-        updated_at: new Date().toISOString()
-      });
-      updateSyncStatusUI("synced");
-    } catch(e){
-      console.warn("Push transaction failed:", e);
-      updateSyncStatusUI("error");
-    }
-  }
-
-  async function syncDeleteTransaction(txnId){
-    if(!supabase || !currentUser) return;
-    try {
-      await supabase.from('transactions').delete().eq('id', txnId).eq('user_id', currentUser.id);
-      updateSyncStatusUI("synced");
-    } catch(e){
-      console.warn("Delete transaction sync failed:", e);
-    }
-  }
-
-  async function syncPushSettings(){
-    if(!supabase || !currentUser) return;
-    try {
-      await supabase.from('user_settings').upsert({
-        user_id: currentUser.id,
-        custom_categories: customCategories,
-        merchant_memory: merchantMemory,
-        trusted_merchant_memory: trustedMerchantMemory,
-        recurring_rules: recurringRules,
-        budgets: budgets,
-        updated_at: new Date().toISOString()
-      });
-      updateSyncStatusUI("synced");
-    } catch(e){
-      console.warn("Push settings failed:", e);
-    }
-  }
-
-  async function syncPullAll(){
-    if(!supabase || !currentUser) return;
-    updateSyncStatusUI("syncing");
-    try {
-      const { data: remoteTxns } = await supabase.from('transactions').select('*').eq('user_id', currentUser.id);
-      const { data: remoteSettings } = await supabase.from('user_settings').select('*').eq('user_id', currentUser.id).maybeSingle();
-
-      if(remoteTxns && remoteTxns.length > 0){
-        const map = new Map();
-        transactions.forEach(t => map.set(t.id, t));
-        remoteTxns.forEach(rt => {
-          map.set(rt.id, {
-            id: rt.id,
-            type: rt.type,
-            category: rt.category,
-            merchant: rt.merchant || '',
-            amount: Number(rt.amount),
-            payment: rt.payment || 'Other',
-            note: rt.note || '',
-            date: rt.date,
-            recurringKey: rt.recurring_key || null
-          });
-        });
-        transactions = Array.from(map.values()).sort((a,b) => new Date(a.date) - new Date(b.date));
-        saveTransactions();
-      } else if(transactions.length > 0){
-        for(const t of transactions){
-          await syncPushTransaction(t);
-        }
-      }
-
-      if(remoteSettings){
-        if(remoteSettings.custom_categories){
-          customCategories = remoteSettings.custom_categories;
-          saveCustomCategories();
-        }
-        if(remoteSettings.budgets){
-          budgets = remoteSettings.budgets;
-          saveBudgets();
-        }
-        if(remoteSettings.recurring_rules){
-          recurringRules = remoteSettings.recurring_rules;
-          saveRecurringRules();
-        }
-        if(remoteSettings.merchant_memory){
-          merchantMemory = remoteSettings.merchant_memory;
-          saveMerchantMemory();
-        }
-        if(remoteSettings.trusted_merchant_memory){
-          trustedMerchantMemory = remoteSettings.trusted_merchant_memory;
-          saveTrustedMerchantMemory();
-        }
-      } else {
-        await syncPushSettings();
-      }
-
-      saveAppState();
-      renderBalance();
-      if(summaryViewEl && summaryViewEl.style.display !== "none") renderSummary();
-      updateSyncStatusUI("synced");
-    } catch(e){
-      console.warn("Pull all failed:", e);
-      updateSyncStatusUI("error");
-    }
-  }
   const STORAGE_KEY = "ledger:transactions";
   const CUSTOM_CATEGORIES_KEY = "ledger:custom-categories";
   const MERCHANT_MEMORY_KEY = "ledger:merchant-memory";
@@ -1622,11 +1506,19 @@
   const BUDGETS_KEY = "ledger:budgets:v1";
   const BACKUP_LAST_EXPORTED_KEY = "ledger:backup:last-exported";
   const BACKUP_NOTICE_DISMISSED_KEY = "ledger:backup:notice-dismissed";
+  const DELETED_TXN_IDS_KEY = "ledger:deleted-ids";
+
   let customCategories = { Expense: [], Income: [] };
   let merchantMemory = { Expense: {}, Income: {} };
   let trustedMerchantMemory = { Expense: {}, Income: {} };
   let recurringRules = [];
   let budgets = { Expense: {} };
+  let transactions = [];
+  let draft = {};
+  let step = "type";
+  let storageReady = false;
+  let flowHistory = [];
+  let lastSavedTransactionId = null;
 
   const chatLog = document.getElementById("chat-log");
   const summaryContent = document.getElementById("summary-content");
@@ -1637,17 +1529,334 @@
   const chatViewEl = document.getElementById("chat-view");
   const summaryViewEl = document.getElementById("summary-view");
 
-  let transactions = [];
-  let draft = {};
-  let step = "type";
-  let storageReady = false;
-  let flowHistory = [];
-  let lastSavedTransactionId = null;
-
   const fmt = (n) => {
     const sign = n < 0 ? "-" : "";
     return sign + "₹" + Math.abs(n).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
   };
+
+  let currentUser = null;
+
+  // --- Deletion Tracking for Sync ---
+  function getDeletedTransactionIds(){
+    try {
+      const saved = JSON.parse(localStorage.getItem(DELETED_TXN_IDS_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch(e){ return []; }
+  }
+
+  function recordDeletedTransactionId(id){
+    if(!id) return;
+    try {
+      const list = getDeletedTransactionIds();
+      if(!list.includes(String(id))){
+        list.push(String(id));
+        localStorage.setItem(DELETED_TXN_IDS_KEY, JSON.stringify(list));
+      }
+    } catch(e){}
+  }
+
+  function clearDeletedTransactionIds(){
+    try { localStorage.removeItem(DELETED_TXN_IDS_KEY); } catch(e){}
+  }
+
+  // --- Visual Feedback Toast ---
+  function showSyncToast(message){
+    let toast = document.getElementById("ledger-toast");
+    if(!toast){
+      toast = document.createElement("div");
+      toast.id = "ledger-toast";
+      toast.style.cssText = "position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--panel-raised, #1B261F);color:var(--text, #ECEBE2);border:1px solid var(--line, #2C3A31);padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;box-shadow:0 12px 32px rgba(0,0,0,0.35);z-index:999999;opacity:0;transition:all 0.25s ease;pointer-events:none;display:flex;align-items:center;gap:8px;";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = "1";
+    toast.style.transform = "translateX(-50%) translateY(0)";
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateX(-50%) translateY(10px)";
+    }, 3200);
+  }
+
+  function updateSyncStatusUI(status){
+    const syncDot = document.getElementById("sync-dot");
+    const authBtnLabel = document.getElementById("auth-btn-label");
+    const authSyncStatus = document.getElementById("auth-sync-status");
+    if(syncDot){
+      syncDot.className = "sync-dot " + (status === "synced" ? "synced" : (status === "syncing" ? "syncing" : (status === "error" ? "error" : "")));
+    }
+    if(authBtnLabel){
+      if(status === "synced") authBtnLabel.textContent = currentUser ? "Synced" : "Guest";
+      else if(status === "syncing") authBtnLabel.textContent = "Syncing...";
+      else if(status === "error") authBtnLabel.textContent = "Error";
+      else authBtnLabel.textContent = currentUser ? "Synced" : "Sign In";
+    }
+    if(authSyncStatus){
+      if(!currentUser){
+        authSyncStatus.innerHTML = `<span class="sync-dot"></span> Not signed in (Guest mode)`;
+      } else if(status === "syncing"){
+        authSyncStatus.innerHTML = `<span class="sync-dot syncing"></span> Syncing with cloud...`;
+      } else if(status === "error"){
+        authSyncStatus.innerHTML = `<span class="sync-dot error"></span> Cloud sync error (Check network)`;
+      } else {
+        const count = transactions ? transactions.length : 0;
+        authSyncStatus.innerHTML = `<span class="sync-dot synced"></span> Synced to Cloud (${count} transaction${count === 1 ? '' : 's'})`;
+      }
+    }
+  }
+
+  async function syncPushTransaction(txn){
+    if(!supabase || !currentUser || !txn) return;
+    try {
+      let dateIso = new Date().toISOString();
+      if(txn.date){
+        const d = new Date(txn.date);
+        if(!isNaN(d.getTime())) dateIso = d.toISOString();
+      }
+      const type = txn.type === "Income" ? "Income" : "Expense";
+      const amount = Math.abs(Number(txn.amount)) || 0;
+      if(amount <= 0) return;
+
+      const { error } = await supabase.from('transactions').upsert({
+        id: String(txn.id),
+        user_id: currentUser.id,
+        type: type,
+        category: txn.category || "General",
+        merchant: txn.merchant || '',
+        amount: amount,
+        payment: txn.payment || 'Other',
+        note: txn.note || '',
+        date: dateIso,
+        recurring_key: txn.recurringKey || txn.recurring_key || null,
+        updated_at: new Date().toISOString()
+      });
+      if(error){
+        console.warn("Push transaction failed:", error);
+        updateSyncStatusUI("error");
+      } else {
+        updateSyncStatusUI("synced");
+      }
+    } catch(e){
+      console.warn("Push transaction failed:", e);
+      updateSyncStatusUI("error");
+    }
+  }
+
+  async function syncDeleteTransaction(txnId){
+    if(!txnId) return;
+    recordDeletedTransactionId(txnId);
+    if(!supabase || !currentUser) return;
+    try {
+      const { error } = await supabase.from('transactions').delete().eq('id', String(txnId)).eq('user_id', currentUser.id);
+      if(error) console.warn("Delete transaction sync failed:", error);
+      else updateSyncStatusUI("synced");
+    } catch(e){
+      console.warn("Delete transaction sync failed:", e);
+    }
+  }
+
+  async function syncPushSettings(){
+    if(!supabase || !currentUser) return;
+    try {
+      const mmWithTrusted = {
+        Expense: { ...(merchantMemory?.Expense || {}) },
+        Income: { ...(merchantMemory?.Income || {}) },
+        _trusted: trustedMerchantMemory || { Expense: {}, Income: {} }
+      };
+
+      const { error } = await supabase.from('user_settings').upsert({
+        user_id: currentUser.id,
+        custom_categories: customCategories || { Expense: [], Income: [] },
+        merchant_memory: mmWithTrusted,
+        recurring_rules: recurringRules || [],
+        deleted_recurring_keys: [],
+        budgets: budgets || { Expense: {} },
+        updated_at: new Date().toISOString()
+      });
+      if(error){
+        console.warn("Push settings failed:", error);
+      } else {
+        updateSyncStatusUI("synced");
+      }
+    } catch(e){
+      console.warn("Push settings failed:", e);
+    }
+  }
+
+  let isSyncing = false;
+  async function syncPullAll(showToast = false){
+    if(!supabase || !currentUser){
+      updateSyncStatusUI("disconnected");
+      return;
+    }
+    if(isSyncing) return;
+    isSyncing = true;
+    updateSyncStatusUI("syncing");
+
+    try {
+      // 1. Process any pending offline deletions
+      const deletedIds = getDeletedTransactionIds();
+      if(deletedIds.length > 0){
+        try {
+          await supabase.from('transactions').delete().in('id', deletedIds).eq('user_id', currentUser.id);
+          clearDeletedTransactionIds();
+        } catch(delErr){
+          console.warn("Could not sync pending deletions:", delErr);
+        }
+      }
+
+      // 2. Fetch all remote transactions for this user
+      const { data: remoteTxns, error: txErr } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', currentUser.id);
+      if(txErr) throw txErr;
+
+      const remoteList = remoteTxns || [];
+      const remoteIdMap = new Map(remoteList.map(r => [r.id, r]));
+
+      // 3. Find any local transactions that aren't yet in remote (e.g. entered on PC before signing in or while offline)
+      const pendingDeletionsSet = new Set(getDeletedTransactionIds());
+      const localUnsynced = transactions.filter(t => !remoteIdMap.has(t.id) && !pendingDeletionsSet.has(t.id));
+
+      if(localUnsynced.length > 0){
+        console.info(`Uploading ${localUnsynced.length} unsynced local transactions to cloud...`);
+        const rowsToPush = localUnsynced.map(t => {
+          let dateIso = new Date().toISOString();
+          if(t.date){
+            const d = new Date(t.date);
+            if(!isNaN(d.getTime())) dateIso = d.toISOString();
+          }
+          return {
+            id: String(t.id),
+            user_id: currentUser.id,
+            type: t.type === "Income" ? "Income" : "Expense",
+            category: t.category || "General",
+            merchant: t.merchant || '',
+            amount: Math.abs(Number(t.amount)) || 0,
+            payment: t.payment || 'Other',
+            note: t.note || '',
+            date: dateIso,
+            recurring_key: t.recurringKey || t.recurring_key || null,
+            updated_at: new Date().toISOString()
+          };
+        }).filter(r => r.amount > 0);
+
+        if(rowsToPush.length > 0){
+          const { error: pushErr } = await supabase.from('transactions').upsert(rowsToPush);
+          if(pushErr) console.warn("Failed to push unsynced transactions:", pushErr);
+        }
+      }
+
+      // 4. Merge remote and local transactions
+      const mergedMap = new Map();
+      transactions.forEach(t => {
+        if(!pendingDeletionsSet.has(t.id)) mergedMap.set(t.id, t);
+      });
+      remoteList.forEach(rt => {
+        if(!pendingDeletionsSet.has(rt.id)){
+          mergedMap.set(rt.id, {
+            id: rt.id,
+            type: rt.type === "Income" ? "Income" : "Expense",
+            category: rt.category || "General",
+            merchant: rt.merchant || '',
+            amount: Number(rt.amount),
+            payment: rt.payment || 'Other',
+            note: rt.note || '',
+            date: rt.date,
+            recurringKey: rt.recurring_key || null
+          });
+        }
+      });
+
+      transactions = Array.from(mergedMap.values()).sort((a,b) => new Date(a.date) - new Date(b.date));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+      } catch(e){}
+
+      // 5. Fetch and merge user settings
+      const { data: remoteSettings } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      let needSettingsPush = false;
+      if(remoteSettings){
+        if(remoteSettings.custom_categories){
+          const remoteExp = remoteSettings.custom_categories.Expense || [];
+          const remoteInc = remoteSettings.custom_categories.Income || [];
+          const localExp = customCategories.Expense || [];
+          const localInc = customCategories.Income || [];
+          if(localExp.some(c => !remoteExp.includes(c)) || localInc.some(c => !remoteInc.includes(c))){
+            needSettingsPush = true;
+          }
+          customCategories = {
+            Expense: [...new Set([...remoteExp, ...localExp])],
+            Income: [...new Set([...remoteInc, ...localInc])]
+          };
+          try { localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(customCategories)); }catch(e){}
+        }
+
+        if(remoteSettings.budgets && remoteSettings.budgets.Expense){
+          budgets.Expense = { ...(remoteSettings.budgets.Expense || {}), ...(budgets.Expense || {}) };
+          try { localStorage.setItem(BUDGETS_KEY, JSON.stringify(budgets)); }catch(e){}
+        }
+
+        if(remoteSettings.recurring_rules){
+          const ruleMap = new Map();
+          (remoteSettings.recurring_rules || []).forEach(r => ruleMap.set(r.id, r));
+          (recurringRules || []).forEach(r => {
+            if(!ruleMap.has(r.id)){
+              ruleMap.set(r.id, r);
+              needSettingsPush = true;
+            }
+          });
+          recurringRules = Array.from(ruleMap.values());
+          try { localStorage.setItem(RECURRING_KEY, JSON.stringify(recurringRules)); }catch(e){}
+        }
+
+        if(remoteSettings.merchant_memory){
+          const rmm = remoteSettings.merchant_memory;
+          if(rmm._trusted){
+            trustedMerchantMemory = {
+              Expense: { ...(rmm._trusted.Expense || {}), ...(trustedMerchantMemory.Expense || {}) },
+              Income: { ...(rmm._trusted.Income || {}), ...(trustedMerchantMemory.Income || {}) }
+            };
+            try { localStorage.setItem(TRUSTED_MERCHANT_MEMORY_KEY, JSON.stringify(trustedMerchantMemory)); }catch(e){}
+          }
+          merchantMemory = {
+            Expense: { ...(rmm.Expense || {}), ...(merchantMemory.Expense || {}) },
+            Income: { ...(rmm.Income || {}), ...(merchantMemory.Income || {}) }
+          };
+          try { localStorage.setItem(MERCHANT_MEMORY_KEY, JSON.stringify(merchantMemory)); }catch(e){}
+        }
+
+        if(needSettingsPush){
+          await syncPushSettings();
+        }
+      } else {
+        await syncPushSettings();
+      }
+
+      saveAppState();
+      renderBalance();
+      if(summaryViewEl && summaryViewEl.style.display !== "none") renderSummary();
+      updateSyncStatusUI("synced");
+
+      if(showToast){
+        showSyncToast(`✓ Synced ${transactions.length} transaction${transactions.length === 1 ? '' : 's'}`);
+      }
+    } catch(err){
+      console.warn("Pull all failed:", err);
+      updateSyncStatusUI("error");
+      if(showToast){
+        showSyncToast("Sync failed. Check network connection.");
+      }
+    } finally {
+      isSyncing = false;
+    }
+  }
 
   // ---------- storage ----------
   // ---------- persistent local storage ----------
@@ -2381,6 +2590,7 @@
     }
     transactions = transactions.filter(t=>t.id !== txn.id);
     await saveTransactions();
+    if(typeof syncDeleteTransaction === "function" && currentUser) syncDeleteTransaction(txn.id);
     lastSavedTransactionId = transactions.length ? transactions[transactions.length-1].id : null;
     renderBalance();
     addBotMessage(`Undone. Removed <b>${escapeHtml(txn.merchant || txn.category)}</b> · ${fmt(txn.amount)}.`);
@@ -2423,6 +2633,7 @@
       txn.merchant=value.toLowerCase();
     }
     await saveTransactions();
+    if(typeof syncPushTransaction === "function" && currentUser) syncPushTransaction(txn);
     renderBalance();
     addBotMessage(`Updated the last transaction: <b>${escapeHtml(txn.merchant || txn.category)}</b> · ${fmt(txn.amount)}.`);
     addChoices([
@@ -2441,6 +2652,7 @@
     const idx=transactions.findIndex(t=>t.id===txn.id);
     if(idx>=0) transactions[idx]=snapshot;
     await saveTransactions();
+    if(typeof syncPushTransaction === "function" && currentUser) syncPushTransaction(snapshot);
     delete snapshot.__beforeCorrection;
     renderBalance();
     addBotMessage("Change undone. The previous values are restored.");
@@ -2797,6 +3009,7 @@
     transactions.push(txn);
     lastSavedTransactionId = txn.id;
     await saveTransactions();
+    if(typeof syncPushTransaction === "function" && currentUser) syncPushTransaction(txn);
     renderBalance();
 
     showTyping(() => {
@@ -2870,7 +3083,11 @@
         cursor.setMonth(cursor.getMonth()+1);
       }
     });
-    if(changed){ saveTransactions(); renderBalance(); }
+    if(changed){
+      saveTransactions();
+      renderBalance();
+      if(typeof syncPullAll === "function" && currentUser) syncPullAll(false);
+    }
     return changed;
   }
 
@@ -3618,6 +3835,7 @@
       txn.date=date+"T00:00:00";
       txn.note=panel.querySelector(".te-note").value.trim();
       await saveTransactions();
+      if(typeof syncPushTransaction === "function" && currentUser) syncPushTransaction(txn);
       if(lastSavedTransactionId===txn.id) lastSavedTransactionId=txn.id;
       renderBalance();
       panel.remove();
@@ -3689,6 +3907,7 @@
           transactions=transactions.filter(t=>t.id!==id);
           if(lastSavedTransactionId===id) lastSavedTransactionId=transactions.length ? transactions[transactions.length-1].id : null;
           await saveTransactions();
+          if(typeof syncDeleteTransaction === "function" && currentUser) syncDeleteTransaction(id);
           renderBalance();
           render();
         };
@@ -4605,9 +4824,20 @@
       updateSyncStatusUI("disconnected");
     };
 
-    document.getElementById("auth-sync-now-btn").onclick = async () => {
-      await syncPullAll();
-    };
+    const syncNowBtn = document.getElementById("auth-sync-now-btn");
+    if(syncNowBtn){
+      syncNowBtn.onclick = async () => {
+        syncNowBtn.disabled = true;
+        const origText = syncNowBtn.textContent;
+        syncNowBtn.textContent = "Syncing...";
+        await syncPullAll(true);
+        syncNowBtn.textContent = "✓ Synced!";
+        setTimeout(() => {
+          syncNowBtn.disabled = false;
+          syncNowBtn.textContent = origText;
+        }, 1800);
+      };
+    }
 
     // Listen to Supabase auth events & recover session
     if (supabase) {
@@ -4615,7 +4845,7 @@
         if (session && session.user) {
           currentUser = session.user;
           updateSyncStatusUI("synced");
-          syncPullAll();
+          syncPullAll(false);
         } else {
           updateSyncStatusUI("disconnected");
         }
@@ -4637,11 +4867,32 @@
         } else if (session && session.user) {
           currentUser = session.user;
           updateSyncStatusUI("synced");
+          if(event === "SIGNED_IN" || event === "INITIAL_SESSION"){
+            await syncPullAll(false);
+          }
         } else {
           currentUser = null;
           updateSyncStatusUI("disconnected");
         }
       });
+    }
+
+    // Auto-sync on window focus and tab visibility change (for seamless mobile <-> PC sync)
+    if(!window._ledgerSyncListenersAttached){
+      window._ledgerSyncListenersAttached = true;
+      window.addEventListener("focus", () => {
+        if(currentUser && !isSyncing) syncPullAll(false);
+      });
+      document.addEventListener("visibilitychange", () => {
+        if(document.visibilityState === "visible" && currentUser && !isSyncing){
+          syncPullAll(false);
+        }
+      });
+      setInterval(() => {
+        if(currentUser && !isSyncing && document.visibilityState === "visible"){
+          syncPullAll(false);
+        }
+      }, 60000);
     }
   }
 
