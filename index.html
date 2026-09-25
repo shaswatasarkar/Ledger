@@ -137,16 +137,17 @@
     align-items:center;
     justify-content:space-between;
     gap: 14px;
-    padding: 16px 20px;
-    padding-top: max(16px, env(safe-area-inset-top));
+    padding: 14px 20px;
+    padding-top: max(14px, env(safe-area-inset-top));
     border-bottom: 1px solid var(--line);
     background: var(--header-bg);
-    backdrop-filter: blur(14px) saturate(140%);
-    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
     flex-shrink:0;
     position: sticky;
     top: 0;
     z-index: 20;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.03);
   }
   .brand{
     display:flex;
@@ -385,14 +386,45 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
   }
+  .msg-row{
+    animation: fadeSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fadeSlideUp{
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .msg-sender{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .msg-sender::before{
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+  }
   .msg-row.bot .bubble{
     border-bottom-left-radius: 4px;
+    border: 1px solid var(--bubble-border);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-sm);
   }
   .msg-row.user .bubble{
     background: var(--bubble-user-bg);
     color: var(--bubble-user-text);
     border-color: transparent;
-    border-bottom-right-radius: 4px;
+    border-radius: 18px 18px 4px 18px;
+    box-shadow: 0 4px 16px rgba(234, 88, 12, 0.25);
   }
   .bubble b{ font-weight: 700; }
   .bubble .highlight-amt{
@@ -439,24 +471,26 @@
     background: var(--chip-bg);
     border: 1px solid var(--line);
     color: var(--text);
-    padding: 8px 14px;
+    padding: 8px 15px;
     border-radius: var(--radius-pill);
     font-size: 13.5px;
     font-family: 'IBM Plex Sans', sans-serif;
-    cursor:pointer;
-    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .chip:hover{
     background: var(--chip-hover);
     border-color: var(--gold);
-    box-shadow: 0 0 0 1px rgba(217,119,6,0.15);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px var(--gold-soft);
   }
-  .chip:active{ transform: scale(0.97); }
+  .chip:active{ transform: scale(0.96); }
   .chip.chosen{
     background: transparent;
     border-color: var(--line-soft);
     color: var(--text-dim);
-    cursor:default;
+    cursor: default;
   }
   .chip.danger{ color: var(--red); border-color: rgba(225,29,46,0.45); }
   .chip.danger:hover{ border-color: var(--red); background: var(--red-soft); box-shadow: 0 0 0 1px rgba(225,29,46,0.2); }
@@ -465,9 +499,13 @@
     background: linear-gradient(135deg, var(--gold), var(--gold-2));
     color: #1A1206;
     font-weight: 700;
-    box-shadow: 0 4px 16px -4px rgba(246,169,40,0.65), 0 0 0 1px rgba(217,119,6,0.3);
+    box-shadow: 0 4px 16px -2px rgba(245,158,11,0.5), 0 0 0 1px rgba(217,119,6,0.3);
   }
-  .chip.primary:hover{ filter: brightness(1.08); }
+  .chip.primary:hover{
+    filter: brightness(1.08);
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 20px rgba(245,158,11,0.6);
+  }
 
   .back-chip{
     margin-top: 8px;
@@ -623,12 +661,13 @@
   }
   .summary-subnav{
     display:flex;
-    gap: 6px;
-    margin-bottom: 20px;
-    background: var(--panel);
-    border: 1px solid var(--line-soft);
+    gap: 4px;
+    margin-bottom: 22px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
     border-radius: var(--radius-pill);
     padding: 4px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.15);
   }
   .subnav-btn{
     flex:1;
@@ -637,16 +676,17 @@
     color: var(--text-muted);
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 13px;
-    font-weight: 500;
-    padding: 9px 6px;
+    font-weight: 600;
+    padding: 9px 12px;
     border-radius: var(--radius-pill);
     cursor:pointer;
-    transition: background .15s, color .15s;
+    transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .subnav-btn:hover{ color: var(--text); }
   .subnav-btn.active{
-    background: var(--chip-hover);
-    color: var(--text);
+    background: var(--panel-raised);
+    color: var(--gold);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
   }
   .summary-panel{ min-width:0; }
   .summary-section{ margin-bottom: 26px; }
@@ -667,11 +707,16 @@
   }
   .stat-box{
     background: var(--panel);
-    border: 1px solid var(--line-soft);
-    border-top: 2px solid var(--line);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--line);
     border-radius: var(--radius-md);
-    padding: 13px 14px;
+    padding: 14px 16px;
     box-shadow: var(--shadow-sm);
+    transition: transform 0.18s, border-color 0.18s;
+  }
+  .stat-box:hover{
+    transform: translateY(-1.5px);
+    box-shadow: var(--shadow-md);
   }
   .stat-box.accent-income{ border-top-color: var(--mint); }
   .stat-box.accent-expense{ border-top-color: var(--red); }
@@ -2023,12 +2068,26 @@
     "fuel": ["Transportation", "Fuel"],
     "netflix": ["Subscriptions", "Netflix"],
     "amazon": ["Shopping", "Online Shopping"],
+    "flipkart": ["Shopping", "Online Shopping"],
+    "mouse": ["Shopping", "Electronics"],
+    "keyboard": ["Shopping", "Electronics"],
+    "monitor": ["Shopping", "Electronics"],
+    "headphones": ["Shopping", "Electronics"],
+    "laptop": ["Shopping", "Electronics"],
+    "charger": ["Shopping", "Electronics"],
+    "mother": ["Gift", "Family"],
+    "mom": ["Gift", "Family"],
+    "dad": ["Gift", "Family"],
+    "father": ["Gift", "Family"],
+    "parents": ["Gift", "Family"],
     "salary": ["Salary"],
     "freelance": ["Freelance"],
     "refund": ["Refund"],
     "rent": ["Housing"],
     "electricity": ["Utilities"],
     "recharge": ["Utilities", "Mobile Recharge"],
+    "coffee": ["Food", "Coffee"],
+    "tea": ["Food", "Tea"],
     "atta": ["Groceries"]
   };
 
@@ -2117,40 +2176,24 @@
 
   function detectPayment(text){
     const lower=normalizeQuickText(text).toLowerCase();
-    // Category creation chat commands: "add category Gym", "new category Freelance"
-    const mAddCat = lower.match(/^(?:add|new|create)\s+(?:(expense|income)\s+)?category\s+(.+)$/i);
-    if(mAddCat){
-      const type = mAddCat[1] ? capitalizeWords(mAddCat[1]) : "Expense";
-      const catName = capitalizeWords(mAddCat[2].trim());
-      if(addCustomCategory(type, catName)){
-        addBotMessage(`Added <b>${escapeHtml(catName)}</b> to your ${type.toLowerCase()} categories.`);
-      } else {
-        addBotMessage(`Category <b>${escapeHtml(catName)}</b> already exists.`);
-      }
-      renderQuickInput();
-      return;
-    }
     const key=Object.keys(PAYMENT_RULES).sort((a,b)=>b.length-a.length).find(k=>new RegExp(`\\b${k.replace(/[.*+?^${}()|[\\]\\]/g,"\\$&")}\\b`,"i").test(lower) || lower.includes(k));
     return key ? PAYMENT_RULES[key] : null;
   }
 
   function detectType(text){
-    const lower=normalizeQuickText(text).toLowerCase();
-    // Category creation chat commands: "add category Gym", "new category Freelance"
-    const mAddCat = lower.match(/^(?:add|new|create)\s+(?:(expense|income)\s+)?category\s+(.+)$/i);
-    if(mAddCat){
-      const type = mAddCat[1] ? capitalizeWords(mAddCat[1]) : "Expense";
-      const catName = capitalizeWords(mAddCat[2].trim());
-      if(addCustomCategory(type, catName)){
-        addBotMessage(`Added <b>${escapeHtml(catName)}</b> to your ${type.toLowerCase()} categories.`);
-      } else {
-        addBotMessage(`Category <b>${escapeHtml(catName)}</b> already exists.`);
-      }
-      renderQuickInput();
-      return;
-    }
-    if(/\b(salary|freelance|income|received|receive|got|refund|cashback|earned|earning|credited)\b/.test(lower)) return "Income";
-    if(/\b(spent|spend|paid|bought|buy|expense|cost|purchase|purchased)\b/.test(lower)) return "Expense";
+    const lower = normalizeQuickText(text).toLowerCase();
+
+    // 1. Explicit directional indicators: "from mother", "from dad", "from amazon (refund)", "received from ..."
+    if(/\b(?:from|received\s+from|got\s+from)\s+[a-z0-9_-]+/i.test(lower)) return "Income";
+    // "to mother", "to dad", "paid to ...", "sent to ..."
+    if(/\b(?:to|paid\s+to|sent\s+to)\s+[a-z0-9_-]+/i.test(lower)) return "Expense";
+
+    // 2. Clear income verbs / nouns
+    if(/\b(salary|freelance|income|received|receive|got|refund|cashback|earned|earning|credited|bonus|dividend|interest|stipend|allowance)\b/i.test(lower)) return "Income";
+
+    // 3. Clear expense verbs / nouns
+    if(/\b(spent|spend|paid|bought|buy|expense|cost|purchase|purchased|bill|recharge|fare|fee|fees|shopping|ordered)\b/i.test(lower)) return "Expense";
+
     return null;
   }
 
@@ -2196,9 +2239,23 @@
   function parseQuickEntry(text){
     let merchant=detectMerchant(text) || inferMerchant(text);
     let type=detectType(text);
-    if(!type && merchant && ["salary","freelance","refund"].includes(merchant)) type="Income";
-    if(!type && merchant && merchantMemory.Income && merchantMemory.Income[merchant]) type="Income";
-    if(!type && merchant) type = "Expense";
+
+    // If type not determined by keywords, check memory and known lists
+    if(!type && merchant){
+      const mLower = merchant.toLowerCase();
+      if(["salary","freelance","refund","stipend","bonus","dividend","interest"].includes(mLower)){
+        type = "Income";
+      } else if(trustedMerchantMemory.Income && trustedMerchantMemory.Income[mLower]){
+        type = "Income";
+      } else if(trustedMerchantMemory.Expense && trustedMerchantMemory.Expense[mLower]){
+        type = "Expense";
+      } else if(MERCHANT_RULES[mLower]){
+        const ruleCat = MERCHANT_RULES[mLower][0];
+        type = ["Salary", "Freelance", "Refund", "Gift"].includes(ruleCat) ? "Income" : "Expense";
+      }
+    }
+    // Note: If type is still null, we DO NOT force "Expense".
+    // continueAfterQuick() will prompt "Is this an expense or income?" with choice buttons.
 
     // Safety guard: the old broken versions could have persisted tea → Education.
     // Never allow that stale mapping to classify a new tea entry.
@@ -2500,10 +2557,11 @@
     if(!draft.type){
       flowHistory.push({step:"quick",draft:JSON.parse(JSON.stringify(draft)), reason:"type"});
       showTyping(()=>{
-        addBotMessage("Is this an expense or income?");
+        const subject = draft.merchant ? `for <b>${escapeHtml(capitalizeWords(draft.merchant))}</b>` : `of <span class="highlight-amt">${fmt(draft.amount)}</span>`;
+        addBotMessage(`Is this ${subject} an expense or income?`);
         addChoices([
           {label:"Expense",onClick:()=>{draft.type="Expense";continueAfterQuick();}},
-          {label:"Income",onClick:()=>{draft.type="Income";continueAfterQuick();}}
+          {label:"Income",primary:true,onClick:()=>{draft.type="Income";continueAfterQuick();}}
         ]);
         addBackButton();
       });
