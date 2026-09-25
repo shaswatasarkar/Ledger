@@ -464,6 +464,137 @@
   }
   .msg-row.wide{ max-width: 100%; align-self: stretch; }
 
+  /* Interactive Transaction Card & Category Pill */
+  .txn-card-bubble{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    min-width:230px;
+  }
+  .txn-card-head{
+    font-size:14.5px;
+    line-height:1.5;
+  }
+  .txn-card-cat-line{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:12px;
+    color:var(--bubble-muted);
+  }
+  .txn-cat-label{
+    color:var(--bubble-muted);
+    font-weight:500;
+  }
+  .txn-cat-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.24);
+    color:var(--bubble-text);
+    padding:3px 10px;
+    border-radius:var(--radius-pill);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .txn-cat-badge:hover{
+    background:rgba(217,119,6,0.28);
+    border-color:var(--gold);
+    color:#FFF;
+  }
+  .txn-cat-badge:active{ transform:scale(0.97); }
+  .cat-badge-arrow{
+    font-size:10px;
+    opacity:0.8;
+  }
+  .txn-undo-inline-btn{
+    margin-left:auto;
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.16);
+    color:var(--bubble-muted);
+    border-radius:var(--radius-pill);
+    padding:2px 8px;
+    font-size:11px;
+    cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+    transition:all 0.15s;
+  }
+  .txn-undo-inline-btn:hover{
+    color:var(--red);
+    border-color:var(--red);
+    background:rgba(225,29,46,0.12);
+  }
+  .txn-cat-selector-drawer{
+    background:rgba(0,0,0,0.22);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:var(--radius-md);
+    padding:10px;
+    margin-top:2px;
+    animation:rise 0.15s ease both;
+  }
+  .cat-drawer-title{
+    font-size:11.5px;
+    color:var(--bubble-muted);
+    margin-bottom:7px;
+  }
+  .cat-chips-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    max-height:140px;
+    overflow-y:auto;
+  }
+  .cat-chip-btn{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    color:var(--bubble-text);
+    padding:4px 9px;
+    border-radius:var(--radius-pill);
+    font-size:11.5px;
+    cursor:pointer;
+    font-family:'IBM Plex Sans', sans-serif;
+    transition:all 0.15s;
+  }
+  .cat-chip-btn:hover{
+    background:var(--gold);
+    color:#1A1206;
+    border-color:var(--gold);
+    font-weight:600;
+  }
+  .cat-chip-btn.active{
+    background:var(--gold);
+    color:#1A1206;
+    border-color:var(--gold);
+    font-weight:700;
+  }
+  .cat-drawer-saved{
+    font-size:12px;
+    color:#4ADE94;
+    padding:4px 0;
+  }
+  .txn-card-bubble.undone{
+    opacity:0.6;
+  }
+  .txn-cat-inline-select{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    border-radius:var(--radius-pill);
+    padding:2px 6px;
+    font-size:11px;
+    font-family:inherit;
+    cursor:pointer;
+    outline:none;
+    max-width:130px;
+  }
+  .txn-cat-inline-select:focus, .txn-cat-inline-select:hover{
+    border-color:var(--gold);
+  }
+
   .input-row{
     display:flex;
     gap: 8px;
@@ -1026,46 +1157,115 @@
 
   // --- NLP & Parsing ---
   const MERCHANT_RULES = {
+    // Shopping: Tech, Gadgets, Peripherals, Accessories
+    "mouse": ["Shopping"], "keyboard": ["Shopping"], "monitor": ["Shopping"], "display": ["Shopping"],
+    "webcam": ["Shopping"], "microphone": ["Shopping"], "mic": ["Shopping"], "headphone": ["Shopping"],
+    "headphones": ["Shopping"], "earphone": ["Shopping"], "earphones": ["Shopping"], "earbuds": ["Shopping"],
+    "airpods": ["Shopping"], "laptop": ["Shopping"], "macbook": ["Shopping"], "charger": ["Shopping"],
+    "cable": ["Shopping"], "usb": ["Shopping"], "hdmi": ["Shopping"], "adapter": ["Shopping"],
+    "power bank": ["Shopping"], "pendrive": ["Shopping"], "hard disk": ["Shopping"], "hard drive": ["Shopping"],
+    "ssd": ["Shopping"], "ram": ["Shopping"], "gpu": ["Shopping"], "processor": ["Shopping"],
+    "gadget": ["Shopping"], "gadgets": ["Shopping"], "electronics": ["Shopping"], "phone": ["Shopping"],
+    "mobile": ["Shopping"], "smartphone": ["Shopping"], "iphone": ["Shopping"], "ipad": ["Shopping"],
+    "tablet": ["Shopping"], "smartwatch": ["Shopping"], "watch": ["Shopping"], "speaker": ["Shopping"],
+    "bluetooth": ["Shopping"], "croma": ["Shopping"], "reliance digital": ["Shopping"], "vijay sales": ["Shopping"],
+
+    // Shopping: Clothes, Shoes, Fashion & Retail
+    "amazon": ["Shopping"], "flipkart": ["Shopping"], "myntra": ["Shopping"], "zara": ["Shopping"],
+    "h&m": ["Shopping"], "hnm": ["Shopping"], "ajio": ["Shopping"], "meesho": ["Shopping"],
+    "nykaa": ["Shopping"], "tata cliq": ["Shopping"], "clothes": ["Shopping"], "clothing": ["Shopping"],
+    "shirt": ["Shopping"], "tshirt": ["Shopping"], "t-shirt": ["Shopping"], "jeans": ["Shopping"],
+    "pants": ["Shopping"], "trousers": ["Shopping"], "shoes": ["Shopping"], "sneakers": ["Shopping"],
+    "sandals": ["Shopping"], "boots": ["Shopping"], "socks": ["Shopping"], "jacket": ["Shopping"],
+    "hoodie": ["Shopping"], "sweater": ["Shopping"], "dress": ["Shopping"], "kurta": ["Shopping"],
+    "suit": ["Shopping"], "mall": ["Shopping"], "shopping": ["Shopping"], "bag": ["Shopping"],
+    "backpack": ["Shopping"], "wallet": ["Shopping"], "sunglasses": ["Shopping"], "perfume": ["Shopping"],
+
+    // Shopping: Books, Stationery, Home & Furniture
+    "book": ["Shopping"], "books": ["Shopping"], "stationery": ["Shopping"], "pen": ["Shopping"],
+    "notebook": ["Shopping"], "furniture": ["Shopping"], "ikea": ["Shopping"], "chair": ["Shopping"],
+    "table": ["Shopping"], "desk": ["Shopping"], "bed": ["Shopping"], "pillow": ["Shopping"],
+    "curtain": ["Shopping"], "mattress": ["Shopping"], "lamp": ["Shopping"],
+
     // Food & Dining
     "chips": ["Food"], "swiggy": ["Food"], "zomato": ["Food"], "mcdonalds": ["Food"], "kfc": ["Food"],
-    "burger": ["Food"], "pizza": ["Food"], "starbucks": ["Food"], "cafe": ["Food"], "coffee": ["Food"],
-    "tea": ["Food"], "chai": ["Food"], "dinner": ["Food"], "lunch": ["Food"], "breakfast": ["Food"],
-    "restaurant": ["Food"], "dhaba": ["Food"], "biryani": ["Food"], "subway": ["Food"], "dominos": ["Food"],
-    "bakery": ["Food"], "snacks": ["Food"], "ice cream": ["Food"],
+    "burger king": ["Food"], "burger": ["Food"], "pizza": ["Food"], "dominos": ["Food"], "pizza hut": ["Food"],
+    "subway": ["Food"], "starbucks": ["Food"], "cafe": ["Food"], "coffee": ["Food"], "tea": ["Food"],
+    "chai": ["Food"], "dinner": ["Food"], "lunch": ["Food"], "breakfast": ["Food"], "brunch": ["Food"],
+    "restaurant": ["Food"], "dhaba": ["Food"], "biryani": ["Food"], "bakery": ["Food"], "snacks": ["Food"],
+    "ice cream": ["Food"], "dessert": ["Food"], "haldiram": ["Food"], "samosa": ["Food"], "dosa": ["Food"],
+    "roll": ["Food"], "shawarma": ["Food"], "biscuit": ["Food"], "biscuits": ["Food"], "cookie": ["Food"],
+    "fast food": ["Food"],
+
     // Groceries
     "groceries": ["Groceries"], "grocery": ["Groceries"], "blinkit": ["Groceries"], "zepto": ["Groceries"],
     "instamart": ["Groceries"], "bigbasket": ["Groceries"], "milk": ["Groceries"], "vegetables": ["Groceries"],
-    "fruits": ["Groceries"], "supermarket": ["Groceries"], "ration": ["Groceries"], "dmart": ["Groceries"],
+    "veggies": ["Groceries"], "fruits": ["Groceries"], "supermarket": ["Groceries"], "ration": ["Groceries"],
+    "dmart": ["Groceries"], "kirana": ["Groceries"], "atta": ["Groceries"], "rice": ["Groceries"],
+    "dal": ["Groceries"], "oil": ["Groceries"], "butter": ["Groceries"], "cheese": ["Groceries"],
+    "paneer": ["Groceries"], "curd": ["Groceries"], "dahi": ["Groceries"], "eggs": ["Groceries"],
+    "bread": ["Groceries"], "spices": ["Groceries"], "masala": ["Groceries"],
+
     // Transportation
     "uber": ["Transportation"], "ola": ["Transportation"], "rapido": ["Transportation"], "petrol": ["Transportation"],
-    "fuel": ["Transportation"], "diesel": ["Transportation"], "auto": ["Transportation"], "cab": ["Transportation"],
-    "taxi": ["Transportation"], "metro": ["Transportation"], "bus": ["Transportation"], "train": ["Transportation"],
-    "irctc": ["Transportation"], "flight": ["Transportation"], "toll": ["Transportation"], "parking": ["Transportation"],
+    "fuel": ["Transportation"], "diesel": ["Transportation"], "cng": ["Transportation"], "auto": ["Transportation"],
+    "cab": ["Transportation"], "taxi": ["Transportation"], "metro": ["Transportation"], "bus": ["Transportation"],
+    "train": ["Transportation"], "irctc": ["Transportation"], "flight": ["Transportation"], "toll": ["Transportation"],
+    "fastag": ["Transportation"], "parking": ["Transportation"], "ev charging": ["Transportation"],
+    "petrol pump": ["Transportation"], "bike service": ["Transportation"], "car service": ["Transportation"],
+
     // Utilities
-    "electricity": ["Utilities"], "electric": ["Utilities"], "power": ["Utilities"], "wifi": ["Utilities"],
-    "broadband": ["Utilities"], "internet": ["Utilities"], "water": ["Utilities"], "gas": ["Utilities"],
-    "cylinder": ["Utilities"], "recharge": ["Utilities"], "airtel": ["Utilities"], "jio": ["Utilities"],
-    "vi": ["Utilities"], "phone": ["Utilities"],
+    "electricity": ["Utilities"], "electric": ["Utilities"], "power": ["Utilities"], "power bill": ["Utilities"],
+    "wifi": ["Utilities"], "broadband": ["Utilities"], "internet": ["Utilities"], "water bill": ["Utilities"],
+    "gas": ["Utilities"], "cylinder": ["Utilities"], "lpg": ["Utilities"], "recharge": ["Utilities"],
+    "airtel": ["Utilities"], "jio": ["Utilities"], "vi": ["Utilities"], "vodafone": ["Utilities"],
+    "bsnl": ["Utilities"], "phone bill": ["Utilities"], "postpaid": ["Utilities"], "prepaid": ["Utilities"],
+    "dth": ["Utilities"], "tata play": ["Utilities"], "utility": ["Utilities"],
+
     // Subscriptions
     "netflix": ["Subscriptions"], "spotify": ["Subscriptions"], "prime": ["Subscriptions"],
-    "youtube": ["Subscriptions"], "hotstar": ["Subscriptions"], "apple": ["Subscriptions"],
-    "icloud": ["Subscriptions"], "subscription": ["Subscriptions"],
-    // Shopping
-    "amazon": ["Shopping"], "flipkart": ["Shopping"], "myntra": ["Shopping"], "zara": ["Shopping"],
-    "clothes": ["Shopping"], "shoes": ["Shopping"], "electronics": ["Shopping"], "mall": ["Shopping"],
-    "shopping": ["Shopping"],
+    "amazon prime": ["Subscriptions"], "youtube": ["Subscriptions"], "hotstar": ["Subscriptions"],
+    "apple": ["Subscriptions"], "icloud": ["Subscriptions"], "google one": ["Subscriptions"],
+    "chatgpt": ["Subscriptions"], "openai": ["Subscriptions"], "github": ["Subscriptions"],
+    "subscription": ["Subscriptions"], "membership": ["Subscriptions"],
+
     // Housing
-    "rent": ["Housing"], "maintenance": ["Housing"], "society": ["Housing"], "maid": ["Housing"], "cook": ["Housing"],
+    "rent": ["Housing"], "maintenance": ["Housing"], "society": ["Housing"], "maid": ["Housing"],
+    "cook": ["Housing"], "plumber": ["Housing"], "electrician": ["Housing"], "carpenter": ["Housing"],
+    "laundry": ["Housing"], "dry clean": ["Housing"],
+
     // Health & Fitness
-    "gym": ["Health & Fitness"], "doctor": ["Health & Fitness"], "medicine": ["Health & Fitness"],
-    "pharmacy": ["Health & Fitness"], "apollo": ["Health & Fitness"], "1mg": ["Health & Fitness"],
+    "gym": ["Health & Fitness"], "fitness": ["Health & Fitness"], "doctor": ["Health & Fitness"],
+    "medicine": ["Health & Fitness"], "medicines": ["Health & Fitness"], "pharmacy": ["Health & Fitness"],
+    "apollo": ["Health & Fitness"], "1mg": ["Health & Fitness"], "pharmeasy": ["Health & Fitness"],
     "hospital": ["Health & Fitness"], "clinic": ["Health & Fitness"], "dentist": ["Health & Fitness"],
+    "dental": ["Health & Fitness"], "lab test": ["Health & Fitness"], "blood test": ["Health & Fitness"],
+    "consultation": ["Health & Fitness"], "therapy": ["Health & Fitness"], "workout": ["Health & Fitness"],
+    "supplements": ["Health & Fitness"], "protein": ["Health & Fitness"],
+
     // Entertainment
-    "cinema": ["Entertainment"], "movie": ["Entertainment"], "pvr": ["Entertainment"],
-    "inox": ["Entertainment"], "bookmyshow": ["Entertainment"],
+    "cinema": ["Entertainment"], "movie": ["Entertainment"], "movies": ["Entertainment"], "pvr": ["Entertainment"],
+    "inox": ["Entertainment"], "cinepolis": ["Entertainment"], "bookmyshow": ["Entertainment"],
+    "concert": ["Entertainment"], "game": ["Entertainment"], "gaming": ["Entertainment"], "steam": ["Entertainment"],
+    "playstation": ["Entertainment"], "ps5": ["Entertainment"], "xbox": ["Entertainment"],
+
+    // Education
+    "tuition": ["Education"], "course": ["Education"], "udemy": ["Education"], "coursera": ["Education"],
+    "college": ["Education"], "school": ["Education"], "exam": ["Education"], "fees": ["Education"],
+    "coaching": ["Education"],
+
+    // Personal Care
+    "salon": ["Personal Care"], "parlour": ["Personal Care"], "haircut": ["Personal Care"],
+    "spa": ["Personal Care"], "massage": ["Personal Care"], "skincare": ["Personal Care"],
+
+    // Travel
+    "hotel": ["Travel"], "airbnb": ["Travel"], "hostel": ["Travel"], "makemytrip": ["Travel"],
+    "goibibo": ["Travel"], "trip": ["Travel"], "vacation": ["Travel"],
+
     // Income
     "salary": ["Salary"], "stipend": ["Salary"], "bonus": ["Salary"], "freelance": ["Freelance"],
-    "client": ["Freelance"], "refund": ["Refund"], "cashback": ["Refund"], "interest": ["Investment"]
+    "client": ["Freelance"], "refund": ["Refund"], "cashback": ["Refund"], "interest": ["Investment"],
+    "dividend": ["Investment"], "consulting": ["Freelance"], "credited": ["Salary"], "profit": ["Business"]
   };
 
   function normalizeQuickText(text){ return String(text||"").replace(/\s+/g," ").trim(); }
@@ -1105,27 +1305,49 @@
     let cleaned = normalizeQuickText(text).toLowerCase();
     let amount = parseAmount(cleaned);
     let date = parseDate(cleaned) || todayISO();
-    let isIncome = /\b(salary|stipend|freelance|bonus|income|received|refund|cashback|dividend|interest)\b/.test(cleaned);
+    let isIncome = /\b(salary|stipend|freelance|bonus|income|received|receive|got|refund|cashback|dividend|interest|credited|earned|earning)\b/.test(cleaned);
     let type = isIncome ? "Income" : "Expense";
+
+    // Safety check: remove any stale "mouse" -> "Food" bug in memory
+    if(merchantMemory.Expense && merchantMemory.Expense.mouse === "Food"){
+      delete merchantMemory.Expense.mouse;
+    }
+
     let merchant = cleaned
       .replace(/(?:₹|rs\.?|inr)?\s*\d[\d,]*(?:\.\d+)?\s*(?:k|thousand|lakhs?|lacs?)?\b/gi,"")
-      .replace(/\b(yesterday|today|on|for|spent|paid|received|got)\b/gi,"")
+      .replace(/\b(yesterday|today|tomorrow|on|for|spent|spend|paid|pay|received|receive|got|using|via|with|at|in|a|the|to)\b/gi,"")
       .trim();
 
     let category = null;
-    for(const [mKey, cats] of Object.entries(MERCHANT_RULES)){
-      if(cleaned.includes(mKey)){
-        if(!merchant) merchant = mKey;
-        category = cats[0];
+    let matchedRuleKey = null;
+
+    // Word boundary matching with longest rule key first
+    const sortedKeys = Object.keys(MERCHANT_RULES).sort((a,b) => b.length - a.length);
+    for(const mKey of sortedKeys){
+      const escaped = mKey.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if(new RegExp(`\\b${escaped}\\b`, "i").test(cleaned)){
+        category = MERCHANT_RULES[mKey][0];
+        matchedRuleKey = mKey;
         break;
       }
     }
-    if(!category && merchantMemory[type]?.[merchant]) category = merchantMemory[type][merchant];
-    if(!category){
-      category = type === "Income" ? "Salary" : "Food";
+
+    // Check learned merchant memory
+    if(!category && merchant && merchantMemory[type]?.[merchant]){
+      category = merchantMemory[type][merchant];
     }
-    if(!merchant) merchant = category;
-    return { amount, date, type, merchant, category };
+
+    let isUncertain = false;
+    if(!category){
+      isUncertain = true;
+      category = type === "Income" ? "Salary" : "Other";
+    }
+
+    if(!merchant){
+      merchant = matchedRuleKey || category;
+    }
+
+    return { amount, date, type, merchant, category, isUncertain };
   }
 
   // --- UI Messages & Quick Entry ---
@@ -1145,7 +1367,7 @@
     const row = document.createElement("div"); row.className = "msg-row bot wide";
     row.innerHTML = `
       <div class="input-row">
-        <input type="text" placeholder='e.g. "chips 20", "uber 250 yesterday", or "salary 45k"'>
+        <input type="text" placeholder='e.g. "mouse 600", "swiggy 350", "uber 250 yesterday", or "salary 45k"'>
         <button class="send">Log</button>
       </div>`;
     const input = row.querySelector("input"), btn = row.querySelector("button");
@@ -1161,15 +1383,164 @@
     input.focus();
   }
 
+  // Interactive Category Selection Handlers
+  window.toggleCategorySelector = function(txnId){
+    const drawer = document.getElementById("cat-drawer-" + txnId);
+    if(!drawer) return;
+    if(drawer.style.display === "none" || !drawer.style.display){
+      window.renderCategoryChips(txnId);
+      drawer.style.display = "block";
+    } else {
+      drawer.style.display = "none";
+    }
+  };
+
+  window.renderCategoryChips = function(txnId){
+    const txn = transactions.find(t => t.id === txnId);
+    if(!txn) return;
+    const container = document.getElementById("cat-chips-" + txnId);
+    if(!container) return;
+    const cats = getCategories(txn.type);
+    container.innerHTML = cats.map(c => `
+      <button class="cat-chip-btn ${c === txn.category ? 'active' : ''}" type="button" onclick="window.selectTransactionCategory('${txnId}', '${escapeHtml(c)}')">
+        ${escapeHtml(c)}
+      </button>
+    `).join("");
+  };
+
+  window.selectTransactionCategory = function(txnId, newCat){
+    const txn = transactions.find(t => t.id === txnId);
+    if(!txn) return;
+    txn.category = newCat;
+
+    if(txn.merchant){
+      const mKey = txn.merchant.toLowerCase().trim();
+      if(!merchantMemory[txn.type]) merchantMemory[txn.type] = {};
+      merchantMemory[txn.type][mKey] = newCat;
+    }
+
+    saveTransactions();
+    saveAppState();
+    syncPushTransaction(txn);
+    syncPushSettings();
+    renderBalance();
+    if(summaryViewEl.style.display !== "none") renderSummary();
+
+    const badge = document.getElementById("cat-badge-" + txnId);
+    if(badge) badge.textContent = newCat;
+
+    const drawer = document.getElementById("cat-drawer-" + txnId);
+    if(drawer){
+      drawer.innerHTML = `<div class="cat-drawer-saved">✓ Saved as <b>${escapeHtml(newCat)}</b>. I'll remember this for <b>${escapeHtml(txn.merchant || newCat)}</b>!</div>`;
+      setTimeout(() => { if(drawer) drawer.style.display = "none"; }, 2500);
+    }
+  };
+
+  window.undoSpecificTransaction = function(txnId){
+    const idx = transactions.findIndex(t => t.id === txnId);
+    if(idx === -1) return;
+    const txn = transactions[idx];
+    transactions.splice(idx, 1);
+    saveTransactions();
+    renderBalance();
+    if(summaryViewEl.style.display !== "none") renderSummary();
+    syncDeleteTransaction(txnId);
+
+    const bubble = document.getElementById("txn-bubble-" + txnId);
+    if(bubble){
+      bubble.classList.add("undone");
+      bubble.innerHTML = `<div style="text-decoration:line-through;color:var(--bubble-muted);font-size:13px;">Removed: ${fmt(txn.amount)} for <b>${escapeHtml(txn.merchant)}</b> (${escapeHtml(txn.category)})</div>`;
+    }
+  };
+
+  function undoLastTransaction(){
+    const lastTxn = lastSavedTransactionId ? transactions.find(t=>t.id===lastSavedTransactionId) : (transactions.length ? transactions[transactions.length-1] : null);
+    if(!lastTxn){
+      addBotMessage("There is nothing to undo.");
+      return;
+    }
+    const id = lastTxn.id;
+    const name = lastTxn.merchant || lastTxn.category;
+    const amt = lastTxn.amount;
+    transactions = transactions.filter(t => t.id !== id);
+    lastSavedTransactionId = transactions.length ? transactions[transactions.length-1].id : null;
+    saveTransactions();
+    renderBalance();
+    if(summaryViewEl.style.display !== "none") renderSummary();
+    syncDeleteTransaction(id);
+    addBotMessage(`Undone. Removed <b>${escapeHtml(name)}</b> (<span class="highlight-amt">${fmt(amt)}</span>).`);
+  }
+
   function handleInput(text){
+    const trimmed = text.trim();
+    const lower = trimmed.toLowerCase();
+
+    // 1. Navigation / Info commands
+    if(lower === "balance" || lower === "what is my balance" || lower === "what's my balance"){
+      addBotMessage(`Current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
+      renderQuickInput();
+      return;
+    }
+    if(lower === "summary" || lower === "dashboard" || lower === "open summary"){
+      switchView("summary");
+      return;
+    }
+    if(lower === "undo" || lower === "undo last" || lower === "delete last"){
+      undoLastTransaction();
+      renderQuickInput();
+      return;
+    }
+
+    // 2. Change Category commands (e.g. "change category to Shopping", "change mouse to Shopping")
+    const mChangeLast = trimmed.match(/^change\s+(?:last\s+)?category\s+to\s+(.+)$/i);
+    if(mChangeLast){
+      const req = mChangeLast[1].trim();
+      const lastTxn = lastSavedTransactionId ? transactions.find(t=>t.id===lastSavedTransactionId) : (transactions.length ? transactions[transactions.length-1] : null);
+      if(!lastTxn){
+        addBotMessage("There is no recent transaction to change.");
+        renderQuickInput();
+        return;
+      }
+      const matchedCat = getCategories(lastTxn.type).find(c => c.toLowerCase() === req.toLowerCase()) || capitalizeWords(req);
+      window.selectTransactionCategory(lastTxn.id, matchedCat);
+      addBotMessage(`Updated <b>${escapeHtml(lastTxn.merchant || "transaction")}</b> to <b>${escapeHtml(matchedCat)}</b>.`);
+      renderQuickInput();
+      return;
+    }
+
+    const mChangeMerch = trimmed.match(/^change\s+(.+?)\s+(?:category\s+)?to\s+(.+)$/i);
+    if(mChangeMerch && !lower.startsWith("change last ")){
+      const merch = mChangeMerch[1].trim().toLowerCase();
+      const req = mChangeMerch[2].trim();
+      const type = "Expense";
+      const matchedCat = getCategories(type).find(c => c.toLowerCase() === req.toLowerCase()) || capitalizeWords(req);
+      if(!merchantMemory[type]) merchantMemory[type] = {};
+      merchantMemory[type][merch] = matchedCat;
+
+      let count = 0;
+      transactions.forEach(t => {
+        if(t.merchant && t.merchant.toLowerCase().trim() === merch){
+          t.category = matchedCat;
+          syncPushTransaction(t);
+          count++;
+        }
+      });
+      saveTransactions();
+      saveAppState();
+      syncPushSettings();
+      renderBalance();
+      if(summaryViewEl.style.display !== "none") renderSummary();
+      addBotMessage(`Updated <b>${escapeHtml(merch)}</b> → <b>${escapeHtml(matchedCat)}</b>. I'll use <b>${escapeHtml(matchedCat)}</b> for future entries.${count ? ` (Updated ${count} existing transaction${count>1?'s':''})` : ''}`);
+      renderQuickInput();
+      return;
+    }
+
+    // 3. Regular Transaction Entry
     const parsed = parseQuickEntry(text);
     if(!parsed.amount){
       addBotMessage("I couldn't find an amount. How much was it?");
       renderQuickInput();
       return;
-    }
-    if(!parsed.category){
-      parsed.category = parsed.type === "Income" ? "Salary" : "Food";
     }
 
     const txn = {
@@ -1189,7 +1560,29 @@
     renderBalance();
     syncPushTransaction(txn);
 
-    addBotMessage(`Got it — <span class="highlight-amt">${fmt(txn.amount)}</span> logged for <b>${escapeHtml(txn.merchant)}</b>.`);
+    const cardHtml = `
+      <div class="txn-card-bubble" id="txn-bubble-${txn.id}">
+        <div class="txn-card-head">
+          Got it — <span class="highlight-amt">${fmt(txn.amount)}</span> logged for <b>${escapeHtml(capitalizeWords(txn.merchant))}</b>
+        </div>
+        <div class="txn-card-cat-line">
+          <span class="txn-cat-label">Category:</span>
+          <button class="txn-cat-badge" type="button" onclick="window.toggleCategorySelector('${txn.id}')" title="Tap to change category">
+            <span class="cat-badge-text" id="cat-badge-${txn.id}">${escapeHtml(txn.category)}</span>
+            <span class="cat-badge-arrow">▾</span>
+          </button>
+          <button class="txn-undo-inline-btn" type="button" onclick="window.undoSpecificTransaction('${txn.id}')" title="Delete transaction">Undo</button>
+        </div>
+        <div class="txn-cat-selector-drawer" id="cat-drawer-${txn.id}" style="${parsed.isUncertain ? 'display:block;' : 'display:none;'}">
+          <div class="cat-drawer-title">${parsed.isUncertain ? 'Uncertain category — tap to set & remember:' : 'Change category:'}</div>
+          <div class="cat-chips-grid" id="cat-chips-${txn.id}"></div>
+        </div>
+      </div>
+    `;
+
+    addBotMessage(cardHtml);
+    window.renderCategoryChips(txn.id);
+
     addBotMessage(`Current balance is <span class="highlight-amt ${getNet()<0?'neg':''}">${fmt(getNet())}</span>.`);
     renderQuickInput();
   }
@@ -1325,7 +1718,12 @@
                 <span class="txn-dot ${t.type==='Income'?'income':''}"></span>
                 <div class="txn-main">
                   <span class="txn-cat">${escapeHtml(t.merchant||t.category)}</span>
-                  <span class="txn-meta">${escapeHtml(t.category)} · ${formatDisplayDate(txnDateKey(t))}</span>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                    <select class="txn-cat-inline-select" onchange="window.selectTransactionCategory('${t.id}', this.value)" title="Change category">
+                      ${getCategories(t.type).map(c=>`<option value="${escapeHtml(c)}" ${c===t.category?'selected':''}>${escapeHtml(c)}</option>`).join("")}
+                    </select>
+                    <span class="txn-meta">· ${formatDisplayDate(txnDateKey(t))}</span>
+                  </div>
                 </div>
               </div>
               <span class="txn-amt ${t.type==='Income'?'income':'expense'}">${t.type==='Income'?'+':'-'}${fmt(t.amount)}</span>
@@ -1455,7 +1853,12 @@
           <div class="search-result">
             <div>
               <div style="font-weight:500;">${escapeHtml(t.merchant||t.category)}</div>
-              <div style="font-size:12px;color:var(--text-muted);">${escapeHtml(t.category)} · ${formatDisplayDate(txnDateKey(t))}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+                <select class="txn-cat-inline-select" onchange="window.selectTransactionCategory('${t.id}', this.value)" title="Change category">
+                  ${getCategories(t.type).map(c=>`<option value="${escapeHtml(c)}" ${c===t.category?'selected':''}>${escapeHtml(c)}</option>`).join("")}
+                </select>
+                <span style="font-size:12px;color:var(--text-muted);">· ${formatDisplayDate(txnDateKey(t))}</span>
+              </div>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <span class="txn-amt ${t.type==='Income'?'income':'expense'}">${t.type==='Income'?'+':'-'}${fmt(t.amount)}</span>
